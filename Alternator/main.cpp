@@ -244,85 +244,104 @@ void inOrderTravers(node* root) {
 //   +     *      +   y
 //  / \   / \    / \
 // x   y x   z   z  x
+// 
 //a5, a31341, A134
 
-//vector<string> sknfSearch(node* node, int wantedValue, vector<string> vec) {
-//
-//    //если попалась переменная
-//    if (int(node->value) >= 97 && int(node->value) <= 122) {
-//
-//        //если вектор пустой
-//        if (vec.empty()) {
-//            string s;
-//            if (wantedValue == 0) {
-//                s.push_back(node->value);
-//            }
-//            else {
-//                s.push_back(char(toupper(node->value)));
-//            }
-//            vec.push_back(s);
-//            return vec;
-//        }
-//        else {
-//            char valueToPost;
-//            if (wantedValue == 1) {
-//                valueToPost = char(toupper(node->value));
-//            }
-//            else {
-//                valueToPost = node->value;
-//            }
-//            for (int i = 0; i < vec.size(); i++) {
-//                if (vec[i].empty())
-//                    continue;
-//                bool good = true;
-//                for (int j = 0; j < vec[i].size(); j++) {
-//                    if (vec[i][j] == valueToPost) {
-//                        good = false;
-//                        break;
-//                    }
-//                    else if (vec[i][j] == int(valueToPost) + 32 || vec[i][j] == int(valueToPost) - 32) {
-//                        //добавить удаление
-//                        vec[i].clear();
-//                        good = false;
-//                    }
-//                }
-//                if (good)
-//                    vec[i].push_back(valueToPost);
-//                // что-то ещё...
-//            }
-//            return vec;
-//        }
-//    }
-//    vector<pair<int, int>> pairs = getSuitableOperands(node->value, wantedValue);
-//    vector<string> answer;
-//    if (node->value == '!') {
-//        answer = sknfSearch(node->right, pairs[0].second, vec);
-//        return answer;
-//    }
-//    for (int i = 0; i < pairs.size(); i++) {
-//        vector<string> res = sknfSearch(node->left, pairs[i].first, vec);
-//        res = sknfSearch(node->right, pairs[i].second, res);
-//        answer.insert(answer.end(), res.begin(), res.end());
-//    }
-//    return answer;
-//}
+vector<vector<string>> sknfSearch(node* node, int wantedValue, vector<vector<string>> vec) {
+
+    //если попалась переменная
+    if (node->value[0]=='a') {
+
+        //если вектор пустой
+        if (vec.empty()) {
+            vector <string> temp;
+            if (wantedValue == 1) {
+                temp.push_back(node->value);
+            }
+            else {
+                string s = "A";
+                for (int i = 1; i < node->value.size(); i++) {
+                    s.push_back(node->value[i]);
+                }
+                temp.push_back(s);
+            }
+            vec.push_back(temp);
+            return vec;
+        }
+        else {
+            string valueToPost;
+            if (wantedValue == 1) {
+                valueToPost = node->value;
+            }
+            else {
+                valueToPost = "A";
+                for (int i = 1; i < node->value.size(); i++) {
+                    valueToPost.push_back(node->value[i]);
+                }
+            }
+
+            for (int i = 0; i < vec.size();i++) {
+                if (vec[i].empty()) {
+                    continue;
+                }
+                bool isPermissible = true;
+                for (int j = 0; j < vec[i].size(); j++) {
+                    if (vec[i][j] == valueToPost) {
+                        //такая переменная уже есть в данной комбинации, выходим.
+                        isPermissible = false;
+                        break;
+                    }
+                    else if (vec[i][j].substr(1) == valueToPost.substr(1)) {
+                        if (vec[i][j][0] - valueToPost[0] != 0) {
+                            isPermissible = false;
+                            vec[i].clear();
+                            break;
+                        }
+                    }
+                }
+                if (isPermissible) {
+                    vec[i].push_back(valueToPost);
+                }
+            }
+            /*vector<vector<string>> vecWithoutEmpty;
+            for (int i = 0; i < vec.size(); i++) {
+                if (!vec[i].empty()) {
+                    vecWithoutEmpty.push_back(vec[i]);
+                }
+            }
+            return vecWithoutEmpty;*/
+            return vec;
+        }
+    }
+
+    vector<pair<int, int>> pairs = getSuitableOperands(node->value[0], wantedValue);
+    vector<vector<string>> answer;
+    if (node->value[0] == '!') {
+        answer = sknfSearch(node->right, pairs[0].second, vec);
+        return answer;
+    }
+    for (int i = 0; i < pairs.size(); i++) {
+        vector<vector<string>> res = sknfSearch(node->left, pairs[i].first, vec);
+        res = sknfSearch(node->right, pairs[i].second, res);
+        answer.insert(answer.end(), res.begin(), res.end());
+    }
+    return answer;
+}
 
 
 
 int main()
 {
-    vector<string> stash;
+    vector<vector<string>> stash;
     node* root = new node;
     string calculate;
     cin >> calculate;
     addnode(calculate, root);
     inOrderTravers(root);
+    cout << endl;
+    stash = sknfSearch(root, 0, stash);
 
-    //stash = sknfSearch(root, 0, stash);
-
-   /* for (int i = 0; i < stash.size(); i++) {
-        if (!stash[i].empty()) {
-            sort(stash[i].begin(), stash[i].end());
+    /*for (int i = 0; i < stash.size(); i++) 
             for (int j = 0; j < stash[i].size(); j++) {
                 if (isupper(stash[i][j])) {
                     cout << '!' << (char)tolower(stash[i][j]) << " ";
@@ -332,8 +351,16 @@ int main()
                 }
             }
             cout << endl;
-        }
     }*/
+    for (int i = 0; i < stash.size(); i++) {
+        if (!stash[i].empty()) {
+            for (int j = 0; j < stash[i].size(); j++) {
+                cout << stash[i][j] << " ";
+            }
+            cout << endl;
+        }
+    }
+     return 0;
 }
 
 
