@@ -7,12 +7,10 @@ struct node
 {
     struct node* left = nullptr;
     struct node* right = nullptr;
-    char value = ' ';
+    string value = "";
 };
 
-
-
-vector <string> SDNF_vec;
+//Проверяет правильность скобочной конструкции
 bool checkBraces(string str) {
     int braceCounter = 0;
     for (int i = 0; i <= str.size() - 1; i++) {
@@ -30,25 +28,26 @@ bool checkBraces(string str) {
     else return false;
 }
 
-void cleaner(vector <string> array) {
-    for (int i = 0; i < array.size(); i++) {
-        for (int j = 0; j < array[i].size(); j++) {
-            for (int k = 0; k < array[i].size(); k++) {
-                if (k == j) {
-                    continue;
-                }
-                if (array[i][j] == array[i][k]) {
-                    array[i].erase(j, 1);
-                }
-                if (abs(int(array[i][j]) - int(array[i][k])) == 32) {
-                    array[i].clear();
-                }
-            }
-        }
-    }
-}
+//void cleaner(vector <string> array) {
+//    for (int i = 0; i < array.size(); i++) {
+//        for (int j = 0; j < array[i].size(); j++) {
+//            for (int k = 0; k < array[i].size(); k++) {
+//                if (k == j) {
+//                    continue;
+//                }
+//                if (array[i][j] == array[i][k]) {
+//                    array[i].erase(j, 1);
+//                }
+//                if (abs(int(array[i][j]) - int(array[i][k])) == 32) {
+//                    array[i].clear();
+//                }
+//            }
+//        }
+//    }
+//}
 
-void removeOuterBraces(string& str) {
+//Удаляет внешние парные скобки, прим. ((a+b)) -> a+b
+void removeOuterBraces(string &str) {
     if (str[0] != '(' || str[str.size() - 1] != ')')
         return;
     bool isGood = true;
@@ -63,6 +62,7 @@ void removeOuterBraces(string& str) {
     str.append(")");
 }
 
+//вспомогательная структура для поиска наименее приоритетного оператора
 struct operators
 {
     operators(int ind, char val) {
@@ -73,12 +73,30 @@ struct operators
     int index;
 };
 
-char priorityArray[6] = { '=','>','^','+','*','!' };
+//массив всех доступных операторов, расставленных в порядке возрастания приоритета
+char priorityArray[6] = { '=', '>', '^', '+', '*', '!'};
 
+
+//ищет наименее приоритетный оператор и возвращает его позицию в строке
 int find_low_priority_operator(string expression) {
-    if (expression.size() == 1) {
-        return 0;
+    bool isThereOperator = false;
+    for (int i = 0; i < expression.size(); i++) {
+        for (int j = 0; j < 6; j++) {
+            if (expression[i] == priorityArray[j]) {
+                isThereOperator = true;
+                break;
+            }
+        }
+        if (isThereOperator) {
+            break;
+        }
     }
+
+    if (!isThereOperator) {
+        return -1;
+    }
+
+
     int openBrace = 0;
     int closeBrace = 0;
     vector<operators> v;
@@ -109,6 +127,8 @@ int find_low_priority_operator(string expression) {
     return 0;
 }
 
+
+//возвращает список всех допустимых операндов в зависимости от оператора и желаемого значения
 vector<pair<int, int>> getSuitableOperands(char op, int wanted) {
     vector<pair<int, int>> ans;
     switch (op) {
@@ -179,21 +199,19 @@ vector<pair<int, int>> getSuitableOperands(char op, int wanted) {
     return ans;
 }
 
+
+//добавляет узлы в дерево выражения
 void addnode(string expression, node* tree) {
     removeOuterBraces(expression);
     int lpIndex = find_low_priority_operator(expression);
-    tree->value = expression[lpIndex];
-    bool isLeaf = true;
-    for (int i = 0; i < 6; ++i) {
-        if (tree->value == priorityArray[i]) {
-            isLeaf = false;
-            break;
-        }
-    }
-    if (isLeaf) {
+    //если оператора нет, то имеем строку, содержащую только одну переменную, прим. a15
+    if (lpIndex == -1) {
+        tree->value = expression;
         return;
     }
-    if (tree->value == '!') {
+    tree->value = expression[lpIndex];
+   
+    if (tree->value[0] == '!') {
         tree->right = new node;
         addnode(expression.substr(lpIndex + 1), tree->right);
     }
@@ -226,67 +244,68 @@ void inOrderTravers(node* root) {
 //   +     *      +   y
 //  / \   / \    / \
 // x   y x   z   z  x
+//a5, a31341, A134
+
+//vector<string> sknfSearch(node* node, int wantedValue, vector<string> vec) {
 //
-
-vector<string> sknfSearch(node* node, int wantedValue, vector<string> vec) {
-
-    //если попалась переменная
-    if (int(node->value) >= 97 && int(node->value) <= 122) {
-
-        //если вектор пустой
-        if (vec.empty()) {
-            string s;
-            if (wantedValue == 0) {
-                s.push_back(node->value);
-            }
-            else {
-                s.push_back(char(toupper(node->value)));
-            }
-            vec.push_back(s);
-            return vec;
-        }
-        else {
-            char valueToPost;
-            if (wantedValue == 1) {
-                valueToPost = char(toupper(node->value));
-            }
-            else {
-                valueToPost = node->value;
-            }
-            for (int i = 0; i < vec.size(); i++) {
-                if (vec[i].empty())
-                    continue;
-                bool good = true;
-                for (int j = 0; j < vec[i].size(); j++) {
-                    if (vec[i][j] == valueToPost) {
-                        good = false;
-                        break;
-                    }
-                    else if (vec[i][j] == int(valueToPost) + 32 || vec[i][j] == int(valueToPost) - 32) {
-                        vec[i].clear();
-                        good = false;
-                    }
-                }
-                if (good)
-                    vec[i].push_back(valueToPost);
-                // что-то ещё...
-            }
-            return vec;
-        }
-    }
-    vector<pair<int, int>> pairs = getSuitableOperands(node->value, wantedValue);
-    vector<string> answer;
-    if (node->value == '!') {
-        answer = sknfSearch(node->right, pairs[0].second, vec);
-        return answer;
-    }
-    for (int i = 0; i < pairs.size(); i++) {
-        vector<string> res = sknfSearch(node->left, pairs[i].first, vec);
-        res = sknfSearch(node->right, pairs[i].second, res);
-        answer.insert(answer.end(), res.begin(), res.end());
-    }
-    return answer;
-}
+//    //если попалась переменная
+//    if (int(node->value) >= 97 && int(node->value) <= 122) {
+//
+//        //если вектор пустой
+//        if (vec.empty()) {
+//            string s;
+//            if (wantedValue == 0) {
+//                s.push_back(node->value);
+//            }
+//            else {
+//                s.push_back(char(toupper(node->value)));
+//            }
+//            vec.push_back(s);
+//            return vec;
+//        }
+//        else {
+//            char valueToPost;
+//            if (wantedValue == 1) {
+//                valueToPost = char(toupper(node->value));
+//            }
+//            else {
+//                valueToPost = node->value;
+//            }
+//            for (int i = 0; i < vec.size(); i++) {
+//                if (vec[i].empty())
+//                    continue;
+//                bool good = true;
+//                for (int j = 0; j < vec[i].size(); j++) {
+//                    if (vec[i][j] == valueToPost) {
+//                        good = false;
+//                        break;
+//                    }
+//                    else if (vec[i][j] == int(valueToPost) + 32 || vec[i][j] == int(valueToPost) - 32) {
+//                        //добавить удаление
+//                        vec[i].clear();
+//                        good = false;
+//                    }
+//                }
+//                if (good)
+//                    vec[i].push_back(valueToPost);
+//                // что-то ещё...
+//            }
+//            return vec;
+//        }
+//    }
+//    vector<pair<int, int>> pairs = getSuitableOperands(node->value, wantedValue);
+//    vector<string> answer;
+//    if (node->value == '!') {
+//        answer = sknfSearch(node->right, pairs[0].second, vec);
+//        return answer;
+//    }
+//    for (int i = 0; i < pairs.size(); i++) {
+//        vector<string> res = sknfSearch(node->left, pairs[i].first, vec);
+//        res = sknfSearch(node->right, pairs[i].second, res);
+//        answer.insert(answer.end(), res.begin(), res.end());
+//    }
+//    return answer;
+//}
 
 
 
@@ -297,11 +316,11 @@ int main()
     string calculate;
     cin >> calculate;
     addnode(calculate, root);
-    //inOrderTravers(root);
+    inOrderTravers(root);
 
-    stash = sknfSearch(root, 0, stash);
+    //stash = sknfSearch(root, 0, stash);
 
-    for (int i = 0; i < stash.size(); i++) {
+   /* for (int i = 0; i < stash.size(); i++) {
         if (!stash[i].empty()) {
             sort(stash[i].begin(), stash[i].end());
             for (int j = 0; j < stash[i].size(); j++) {
@@ -314,7 +333,7 @@ int main()
             }
             cout << endl;
         }
-    }
+    }*/
 }
 
 
