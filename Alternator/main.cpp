@@ -247,6 +247,24 @@ void inOrderTravers(node* root) {
 // 
 //a5, a31341, A134
 
+void vecClean(vector<vector<string>>& vec)
+{
+    /*for (int i = 0; i < vec.size(); ++i)
+    {
+        if (vec[i].size() == 0)
+        {
+            vec.erase(vec.begin() + i);
+        }
+    }*/
+    vector<vector<string>> ans;
+    for (int i = 0; i < vec.size();i++) {
+        if (vec[i].size() != 0) {
+            ans.push_back(vec[i]);
+        }
+    }
+    vec.swap(ans);
+}
+
 vector<vector<string>> sknfSearch(node* node, int wantedValue, vector<vector<string>> vec) {
 
     //если попалась переменная
@@ -269,6 +287,7 @@ vector<vector<string>> sknfSearch(node* node, int wantedValue, vector<vector<str
             return vec;
         }
         else {
+            //vecClean(vec);
             string valueToPost;
             if (wantedValue == 1) {
                 valueToPost = node->value;
@@ -294,7 +313,9 @@ vector<vector<string>> sknfSearch(node* node, int wantedValue, vector<vector<str
                     else if (vec[i][j].substr(1) == valueToPost.substr(1)) {
                         if (vec[i][j][0] - valueToPost[0] != 0) {
                             isPermissible = false;
-                            vec[i].clear();
+                            vector <string> x;
+                            //vec[i].clear();
+                            vec[i].swap(x);
                             break;
                         }
                     }
@@ -303,13 +324,6 @@ vector<vector<string>> sknfSearch(node* node, int wantedValue, vector<vector<str
                     vec[i].push_back(valueToPost);
                 }
             }
-            /*vector<vector<string>> vecWithoutEmpty;
-            for (int i = 0; i < vec.size(); i++) {
-                if (!vec[i].empty()) {
-                    vecWithoutEmpty.push_back(vec[i]);
-                }
-            }
-            return vecWithoutEmpty;*/
             return vec;
         }
     }
@@ -322,9 +336,12 @@ vector<vector<string>> sknfSearch(node* node, int wantedValue, vector<vector<str
     }
     for (int i = 0; i < pairs.size(); i++) {
         vector<vector<string>> res = sknfSearch(node->left, pairs[i].first, vec);
+        //vecClean(res);
         res = sknfSearch(node->right, pairs[i].second, res);
+        vecClean(res);
         answer.insert(answer.end(), res.begin(), res.end());
     }
+    //vecClean(answer);
     return answer;
 }
 
@@ -353,12 +370,12 @@ int main()
             cout << endl;
     }*/
     for (int i = 0; i < stash.size(); i++) {
-        if (!stash[i].empty()) {
+        
             for (int j = 0; j < stash[i].size(); j++) {
                 cout << stash[i][j] << " ";
             }
             cout << endl;
-        }
+        
     }
      return 0;
 }
