@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <chrono>
 #include <sstream>
+#include <string>
+#include <cstdlib>
 
 using namespace std;
 
@@ -444,10 +446,209 @@ vector<vector<string>> sknfSearch(int wantedValue, vector<vector<string>> vec, n
     }
 }
 
+void split_str(string const& str, const char delim, std::vector <string>& out)
+{
+    // create a stream from the string  
+    stringstream s(str);
 
+    string s2;
+    while (getline(s, s2, delim))
+    {
+        out.push_back(s2); // store the string in s2  
+    }
+}
+
+string getVarName(string str) {
+    if (str[0] = '!') {
+        return str.substr(1, str.size() - 1);
+    }
+    else return str;
+}
+
+//string knfToSknf(string &exp, int numOfNegatives, int numOfVars, int numOfComponents) {
+//
+//    vector<vector<string>> members;
+//
+//    size_t indexFrom = 0;
+//    if (exp[0] == '(')
+//        indexFrom = 1;
+//
+//    size_t indexTo = -1;
+//    //тут мы разбиваем КНФ на элементарные дизъюнкции и записываем их в вектор.
+//
+//    vector<string> elemDisjuncts;
+//
+//    split_str(exp, '*', elemDisjuncts);
+//
+//    //удалим внешние лишние скобки
+//    for (size_t i = 0; i < elemDisjuncts.size(); i++) {
+//
+//        removeOuterBraces(elemDisjuncts[i]);
+//
+//        vector<string> buf;
+//        split_str(elemDisjuncts[i], '+', buf);
+//        members.push_back(buf);
+//    }
+//    //построили вектор всех множителей кнф
+//
+//
+//    //найдём количество переменных, которые нужно добавить к существующим
+//
+//    //здесь будем хранить количество переменных, которые нужно добавить в выражение(которых нет сейчас вообще)
+//    int numOfVarsToAdd = -1;
+//    //список всех переменных, участвующих в выражении на данный момент
+//    vector<string> vars;
+//
+//    //внешний цикл по всем множителям кнф
+//    for (size_t i = 0; i < members.size(); i++) {
+//        //внутренний цикл по всем переменным в ЭД
+//        for (size_t j = 0; j < members[i].size(); j++) {
+//            bool isAdded = false;
+//            string compareA;
+//
+//            if (members[i][j][0] == '!') {
+//                compareA = members[i][j].substr(1, members[i][j].size()-1);
+//            }
+//            else {
+//                compareA = members[i][j];
+//            }
+//            //сравним переменную со всеми, что уже были добавлены в список
+//            for (size_t k = 0; k < vars.size(); k++) {
+//                if (vars[k] == compareA) {
+//                    isAdded = true;
+//                }
+//            }
+//            if (!isAdded) {
+//                vars.push_back(compareA);
+//            }
+//        }
+//    }
+//    
+//    //если желаемое количество переменных меньше, чем есть сейчас, то бросаем исключение
+//    if (numOfVars < vars.size()) {
+//        throw std::invalid_argument("Желаемое количество переменных меньше существующего.");
+//    }
+//    else {
+//        numOfVarsToAdd = numOfVars - vars.size();
+//    }
+//
+//    //теперь у нас есть всё, что нужно, чтобы преобразовать нашу КНФ в СКНФ.
+//
+//    //сюда будем складывать слагаемые, каждое из которых это список переменных с соответствующими знаками.
+//    vector<vector<string>> sknfMembers;
+//    
+//    //внешний цикл по всем слагаемым КНФ
+//    for (size_t i = 0; i < members.size(); i++) {
+//
+//        //этот вектор содержит имена всех переменных, которых не хватает в этом члене КНФ
+//        vector<string> varsToAdd;
+//
+//        //пробегаем по всем переменным, которые у нас есть в выражении
+//        for (size_t k = 0; k < vars.size(); k++) {
+//            bool isExists = false;
+//            for (size_t j = 0; j < members[i].size(); j++) {
+//
+//                string varName = members[i][j][0] == '!' ? members[i][j].substr(1,members[i][j].size()-1): members[i][j];
+//
+//                if (vars[k] == varName) {
+//                    isExists = true;
+//                }
+//            }
+//
+//            if (!isExists) {
+//                varsToAdd.push_back(vars[k]);
+//            }
+//        }
+//        
+//        vector<string> bufMember;
+//        //????
+//        bufMember = members[i];
+//        sknfMembers.push_back(members[i]);
+//        for (size_t k = 0; k < varsToAdd.size(); k++) {
+//            sknfMembers.push_back(members[i]);
+//            int index = -2;
+//            for (size_t j = 0; j < members[i].size(); j++) {
+//                if (members[i][j] > varsToAdd[k]) {
+//                    index = j - 1;
+//                }
+//            }
+//            if (index == -2) {
+//                sknfMembers[sknfMembers.size() - 1].push_back(varsToAdd[k]);
+//                sknfMembers[sknfMembers.size() - 2].push_back("!" + varsToAdd[k]);
+//            }
+//            else if (index == -1) {
+//                sknfMembers[sknfMembers.size() - 1].insert(sknfMembers[sknfMembers.size() - 1].begin(), varsToAdd[k]);
+//                sknfMembers[sknfMembers.size() - 2].insert(sknfMembers[sknfMembers.size() - 2].begin(), "!" + varsToAdd[k]);
+//            }
+//            else {
+//                sknfMembers[sknfMembers.size() - 1].insert(sknfMembers[sknfMembers.size() - 1].begin() + index, varsToAdd[k]);
+//                sknfMembers[sknfMembers.size() - 2].insert(sknfMembers[sknfMembers.size() - 2].begin() + index, "!" + varsToAdd[k]);
+//            }
+//        }
+//
+//
+//
+//    }
+//}
+
+pair<string, string> formulaGeneratorSKNF(int numOfMembers, int numOfVars, int numOfNegations) {
+
+    if (numOfMembers > pow(numOfVars, 2)) {
+        throw invalid_argument("Количество членов больше возможного");
+    }
+
+    vector<vector<string>> sknf;
+    int negationsSet = 0; 
+    for (int i = 0; i < numOfMembers; i++) {
+        vector<string> member;
+        string negation = "!";
+        for (int j = 1; j <= numOfVars; j++) {
+
+            member.push_back("a" + to_string(j));
+            int needNegation = rand() % 2;
+            if (needNegation == 1 && negationsSet < numOfNegations) {
+                member[member.size() - 1].insert(0, 1, '!');
+                negationsSet += 1;
+            }
+        }
+        sknf.push_back(member);
+    }
+
+    while (negationsSet < numOfNegations) {
+        bool isReady = false;
+
+        for (int i = 0; i < sknf.size(); i++) {
+
+            for (int j = 0; j < sknf[i].size(); j++) {
+                if (sknf[i][j][0] != '!' && (rand() % 2)) {
+                    negationsSet += 1;
+                    if (negationsSet == numOfNegations) {
+                        isReady = true;
+                        break;
+                    }
+                    sknf[i][j].insert(0,1, '!');
+                }
+            }
+            if (isReady)
+                break;
+        }
+    }
+
+    return make_pair("a", "a");
+
+}
 
 int main()
 {
+    string expression = "a1*(a1+!a2+a3)*(!a1+a3)";
+    //cin >> expression;
+
+    pair<string, string> answer = formulaGeneratorSKNF(69, 200, 4500);
+
+
+    //////////////////////
+    return 0;
+    //////////////////////
     vector<vector<string>> stash;
     //vector<string> buf{"n"};
     //stash.push_back(buf);
