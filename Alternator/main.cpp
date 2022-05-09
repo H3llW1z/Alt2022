@@ -234,7 +234,7 @@ void addnode(string expression, node* tree) {
 void inOrderTravers(node* root) {
     if (root) {
         inOrderTravers(root->left);
-        cout << root->value << " ";
+        cout << root->value;
         inOrderTravers(root->right);
     }
 }
@@ -872,13 +872,14 @@ int main()
         }
         cout << endl;
     }
+    cout << endl;
+    cout << "Formula length:" << calculate.length() << endl;
 
-
-    //inOrderTravers(root);
     cout << "Are braces correct? " << checkBraces(calculate) << endl;
     cout << "SKNF search began." << endl;
     addnode(calculate, root);
     cout << "Tree ready." << endl;
+    inOrderTravers(root);
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
      stash = sknfSearch(0, stash, root);
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
