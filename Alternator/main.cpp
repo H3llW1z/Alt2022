@@ -15,7 +15,7 @@ struct node
 {
     struct node* left = nullptr;
     struct node* right = nullptr;
-    string value = "";
+    int value = 0;
 };
 
 //Проверяет правильность скобочной конструкции
@@ -83,9 +83,20 @@ struct operators
 
 //массив всех доступных операторов, расставленных в порядке возрастания приоритета
 char priorityArray[6] = { '=', '>', '^', '+', '*', '!'};
+//числ. обозн-я операторов -6   -5   -4   -3   -2   -1
 
-
-//ищет наименее приоритетный оператор и возвращает его позицию в строке
+int getOperatorsIntForm(char op) {
+    switch (op) {
+    case '=': return -6; break;
+    case '>': return -5; break;
+    case '^': return -4; break;
+    case '+': return -3; break;
+    case '*': return -2; break;
+    case '!': return -1; break;
+    default: throw::invalid_argument("Wrong operator char");
+    }
+}
+  //ищет наименее приоритетный оператор и возвращает его позицию в строке
 int find_low_priority_operator(string expression) {
     bool isThereOperator = false;
     for (int i = 0; i < expression.size(); i++) {
@@ -137,10 +148,10 @@ int find_low_priority_operator(string expression) {
 
 
 //возвращает список всех допустимых операндов в зависимости от оператора и желаемого значения
-vector<pair<int, int>> getSuitableOperands(char op, int wanted) {
+vector<pair<int, int>> getSuitableOperands(int op, int wanted) {
     vector<pair<int, int>> ans;
     switch (op) {
-    case '*': {
+    case -2: {
         if (wanted == 1) {
             ans.push_back(make_pair(1, 1));
         }
@@ -151,7 +162,7 @@ vector<pair<int, int>> getSuitableOperands(char op, int wanted) {
         }
     }break;
 
-    case '+': {
+    case -3: {
         if (wanted == 1) {
             ans.push_back(make_pair(1, 0));
             ans.push_back(make_pair(0, 1));
@@ -162,7 +173,7 @@ vector<pair<int, int>> getSuitableOperands(char op, int wanted) {
         }
     }break;
 
-    case '^': {
+    case -4: {
         if (wanted == 1) {
             ans.push_back(make_pair(0, 1));
             ans.push_back(make_pair(1, 0));
@@ -173,7 +184,7 @@ vector<pair<int, int>> getSuitableOperands(char op, int wanted) {
         }
     }break;
 
-    case '!': {
+    case -1: {
         if (wanted == 1) {
             ans.push_back(make_pair(-1, 0));
         }
@@ -182,7 +193,7 @@ vector<pair<int, int>> getSuitableOperands(char op, int wanted) {
         }
     }break;
 
-    case '=': {
+    case -6: {
         if (wanted == 1) {
             ans.push_back(make_pair(0, 0));
             ans.push_back(make_pair(1, 1));
@@ -193,7 +204,7 @@ vector<pair<int, int>> getSuitableOperands(char op, int wanted) {
         }
     }break;
 
-    case '>': {
+    case -5: {
         if (wanted == 1) {
             ans.push_back(make_pair(0, 1));
             ans.push_back(make_pair(0, 0));
@@ -213,13 +224,16 @@ void addnode(string expression, node* tree) {
     removeOuterBraces(expression);
     int lpIndex = find_low_priority_operator(expression);
     //если оператора нет, то имеем строку, содержащую только одну переменную, прим. a15
-    if (lpIndex == -1) {
-        tree->value = expression;
+    if (lpIndex == -1) { 
+        stringstream intVarContainer(expression.substr(1, expression.size() - 1));
+        int intVar;
+        intVarContainer >> intVar;
+        tree->value = intVar;
         return;
     }
-    tree->value = expression[lpIndex];
+    tree->value = getOperatorsIntForm(expression[lpIndex]);
    
-    if (tree->value[0] == '!') {
+    if (tree->value == -1) { // если !
         tree->right = new node;
         addnode(expression.substr(lpIndex + 1), tree->right);
     }
@@ -364,112 +378,112 @@ bool isOperator(char symbol) {
     return false;
 }
 
-vector<vector<string>> sknfSearch(int wantedValue, vector<vector<string>> vec, node* node) {
-    
-    if (isOperator(node->value[0])) {
+//vector<vector<string>> sknfSearch(int wantedValue, vector<vector<string>> vec, node* node) {
+//    
+//    if (isOperator(node->value[0])) {
+//        //если попали в оператор
+//        vector<pair<int, int>> pairs = getSuitableOperands(node->value[0], wantedValue);
+//        
+//        vector<vector<string>> answer;
+//
+//        if (node->value[0] == '!') {
+//            answer = sknfSearch(pairs[0].second, vec, node->right);
+//        }
+//        else {
+//            for (int i = 0; i < pairs.size(); ++i) {
+//                vector<vector<string>> curResult = sknfSearch(pairs[i].second, sknfSearch(pairs[i].first, vec, node->left), node->right);
+//                vecClean(curResult);
+//                if (curResult.empty()) {
+//                    vector<string> temp;
+//                    curResult.push_back(temp);
+//                }
+//                answer.insert(answer.end(), curResult.begin(), curResult.end());
+//            }
+//        }
+//        return answer;
+//
+//    }
+//    else {
+//        //если попали в переменную
+//        string valueToPost = node->value;
+//
+//        if (wantedValue == 0)
+//            valueToPost[0] = 'A';
+//
+//        //если вектор пустой, просто добавим туда одну комбинацию из одной переменной
+//        if (vec.size() == 0) {
+//            vector<string> tempVec;
+//
+//            tempVec.push_back(valueToPost);
+//            vec.push_back(tempVec);
+//
+//            return vec;
+//
+//        }
+//        else {
+//            //внешний цикл по комбинациям
+//            stringstream curVarNumberContainer(node->value.substr(1, node->value.size() - 1));
+//            int curVarNumber;
+//            curVarNumberContainer >> curVarNumber;
+//
+//            for (int i = 0; i < vec.size(); ++i) {
+//                if (vec[i].size() == 0)
+//                    continue;
+//                //внутренний цикл по вхождениям переменной в комбинацию
+//                bool needToPost = true;
+//                for (int j = 0; j < vec[i].size(); ++j) {
+//                    stringstream varInVecContainer(vec[i][j].substr(1, vec[i][j].size() - 1));
+//                    int varInVec;
+//                    varInVecContainer >> varInVec;
+//
+//                    //если нашли переменную с номером больше текущей, вставляем сюда.
+//                    if (curVarNumber < varInVec) {
+//                        vec[i].insert(vec[i].begin() + j, valueToPost);
+//                        needToPost = false;
+//                        break;
+//                    }
+//                    //если наткнулись на эту же переменную, нужно проверить, в каком виде она входит
+//                    else if (curVarNumber == varInVec) {
+//                        
+//                        //если она уже входит с другим знаком - комбинация дефектная, в мусор
+//                        if (valueToPost[0] != vec[i][j][0]) {
+//                            vec[i].clear(); 
+//                        }
+//                        needToPost = false;
+//                        break;
+//                    }
+//                }
+//                if (needToPost)
+//                    vec[i].push_back(valueToPost);
+//            }
+//
+//            //очищаем вектор от всех пустых комбинаций.(освобождаем очень много памяти)
+//            //если вектор после очистки стал пустым, добавим один пустой элемент. Это нужно для разграничения пустых изначально и "опустошённых" векторов.
+//            /*vecClean(vec);
+//            if (vec.empty()) {
+//                vector<string> temp;
+//                vec.push_back(temp);
+//            }*/
+//            return vec;
+//        }
+//    }
+//}
+
+
+list<list<int>> sknfSearchList(int wantedValue, list<list<int>> vec, node* node) {
+
+    if (node->value < 0) {
         //если попали в оператор
-        vector<pair<int, int>> pairs = getSuitableOperands(node->value[0], wantedValue);
-        
-        vector<vector<string>> answer;
+        vector<pair<int, int>> pairs = getSuitableOperands(node->value, wantedValue);
 
-        if (node->value[0] == '!') {
-            answer = sknfSearch(pairs[0].second, vec, node->right);
-        }
-        else {
-            for (int i = 0; i < pairs.size(); ++i) {
-                vector<vector<string>> curResult = sknfSearch(pairs[i].second, sknfSearch(pairs[i].first, vec, node->left), node->right);
-                vecClean(curResult);
-                if (curResult.empty()) {
-                    vector<string> temp;
-                    curResult.push_back(temp);
-                }
-                answer.insert(answer.end(), curResult.begin(), curResult.end());
-            }
-        }
-        return answer;
+        list<list<int>> answer;
 
-    }
-    else {
-        //если попали в переменную
-        string valueToPost = node->value;
-
-        if (wantedValue == 0)
-            valueToPost[0] = 'A';
-
-        //если вектор пустой, просто добавим туда одну комбинацию из одной переменной
-        if (vec.size() == 0) {
-            vector<string> tempVec;
-
-            tempVec.push_back(valueToPost);
-            vec.push_back(tempVec);
-
-            return vec;
-
-        }
-        else {
-            //внешний цикл по комбинациям
-            stringstream curVarNumberContainer(node->value.substr(1, node->value.size() - 1));
-            int curVarNumber;
-            curVarNumberContainer >> curVarNumber;
-
-            for (int i = 0; i < vec.size(); ++i) {
-                if (vec[i].size() == 0)
-                    continue;
-                //внутренний цикл по вхождениям переменной в комбинацию
-                bool needToPost = true;
-                for (int j = 0; j < vec[i].size(); ++j) {
-                    stringstream varInVecContainer(vec[i][j].substr(1, vec[i][j].size() - 1));
-                    int varInVec;
-                    varInVecContainer >> varInVec;
-
-                    //если нашли переменную с номером больше текущей, вставляем сюда.
-                    if (curVarNumber < varInVec) {
-                        vec[i].insert(vec[i].begin() + j, valueToPost);
-                        needToPost = false;
-                        break;
-                    }
-                    //если наткнулись на эту же переменную, нужно проверить, в каком виде она входит
-                    else if (curVarNumber == varInVec) {
-                        
-                        //если она уже входит с другим знаком - комбинация дефектная, в мусор
-                        if (valueToPost[0] != vec[i][j][0]) {
-                            vec[i].clear(); 
-                        }
-                        needToPost = false;
-                        break;
-                    }
-                }
-                if (needToPost)
-                    vec[i].push_back(valueToPost);
-            }
-
-            //очищаем вектор от всех пустых комбинаций.(освобождаем очень много памяти)
-            //если вектор после очистки стал пустым, добавим один пустой элемент. Это нужно для разграничения пустых изначально и "опустошённых" векторов.
-            /*vecClean(vec);
-            if (vec.empty()) {
-                vector<string> temp;
-                vec.push_back(temp);
-            }*/
-            return vec;
-        }
-    }
-}
-
-
-list<list<string>> sknfSearchList(int wantedValue, list<list<string>> vec, node* node) {
-
-    if (isOperator(node->value[0])) {
-        //если попали в оператор
-        vector<pair<int, int>> pairs = getSuitableOperands(node->value[0], wantedValue);
-
-        list<list<string>> answer;
-
-        if (node->value[0] == '!') {
+        if (node->value == -1) {
             answer = sknfSearchList(pairs[0].second, vec, node->right);
         }
         else {
             for (int i = 0; i < pairs.size(); ++i) {
-                list<list<string>> curResult = sknfSearchList(pairs[i].second, sknfSearchList(pairs[i].first, vec, node->left), node->right);
+                list<list<int>> curResult = sknfSearchList(pairs[i].second, sknfSearchList(pairs[i].first, vec, node->left), node->right);
                 answer.insert(answer.end(), curResult.begin(), curResult.end());
             }
         }
@@ -477,10 +491,10 @@ list<list<string>> sknfSearchList(int wantedValue, list<list<string>> vec, node*
     }
     else {
         //если попали в переменную
-        string valueToPost = node->value;
+        int valueToPost = node->value;
 
-        if (wantedValue == 0)
-            valueToPost[0] = 'A';
+        if (wantedValue == 1)
+            valueToPost = -valueToPost;
 
         //если вектор пустой, просто добавим туда одну комбинацию из одной переменной
         if (vec.size() == 1 && (*vec.begin()).size() == 0) {
@@ -489,18 +503,16 @@ list<list<string>> sknfSearchList(int wantedValue, list<list<string>> vec, node*
         }
         else {
             //внешний цикл по комбинациям
-            string curVarNumber = node->value.substr(1, node->value.size() - 1);
-
-            list<list<string>>::iterator it1;
+            int curVarNumber = node->value;
+            list<list<int>>::iterator it1;
             it1 = vec.begin();
             while (it1 != vec.end()) {
                 bool needToPost=true;
-                list<string>::iterator it2= (* it1).begin();
+                list<int>::iterator it2= (* it1).begin();
 
                 while (it2 != (*it1).end()) {
-                    string varInVec = (*it2).substr(1, (*it2).size() - 1);
                     // если нашли переменную с номером больше текущей, вставляем сюда.
-                    if ((curVarNumber.size() < varInVec.size()) || (curVarNumber < varInVec)) {
+                    if (curVarNumber < abs((*it2))) {
                         (*it1).insert(it2, valueToPost);
                         needToPost = false;
                         ++it1;
@@ -508,10 +520,10 @@ list<list<string>> sknfSearchList(int wantedValue, list<list<string>> vec, node*
                     }
 
                     //если наткнулись на эту же переменную, нужно проверить, в каком виде она входит
-                    else if (curVarNumber == varInVec) {
+                    else if (curVarNumber == abs((*it2))) {
 
                         //если она уже входит с другим знаком - комбинация дефектная, в мусор
-                        if (valueToPost[0] != (*it2)[0]) {
+                        if (valueToPost != (*it2)) {
                             vec.erase(it1++);
                         }
                         else { ++it1; }
@@ -674,6 +686,7 @@ string getVarName(string str) {
 //
 //    }
 //}
+
 
 
 //функция возвращает формулу, являющуюся тождественным нулем или единицей.
@@ -931,14 +944,14 @@ int main()
     //string expression = "a1*(a1+!a2+a3)*(!a1+a3)";
     //cin >> expression;
 
-    pair<vector<vector<string>>, string> answer = formulaGeneratorSKNF(3 ,4, 5);
+    pair<vector<vector<string>>, string> answer = formulaGeneratorSKNF(4 ,4, 5);
 
 
     //////////////////////
     //return 0;
     //////////////////////
-    list<list<string>> stash;
-    list<string> buf;
+    list<list<int>> stash;
+    list<int> buf;
     stash.push_back(buf);
     //vector<string> buf{"n"};
     //stash.push_back(buf);
@@ -959,7 +972,8 @@ int main()
     cout << "Formula length:" << calculate.length() << endl;
 
     cout << "Are braces correct? " << checkBraces(calculate) << endl;
-    calculate = "((((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5))))*(!((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5))))*(((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+!((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5)))))";
+    //calculate = "((((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5))))*(!((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5))))*(((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+!((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5)))))";
+    //calculate = "(a1+a2*a3>a4+!a2)+!a3*(a2=!(a1+a3))*(a1+a2*a3>a4+!a2)+!a3*(a2=!(a1+a3))+(a1+a2*a3>a4+!a2)+!a3*(a2=!(a1+a3))*!(a1+a2*a3>a4+!a2)+!a3*(a2=!(a1+a3))";
     cout << "SKNF search began." << endl;
     addnode(calculate, root);
     cout << "Tree ready." << endl;
@@ -971,13 +985,10 @@ int main()
 
     for (auto i = stash.begin(); i != stash.end(); i++) {
         for (auto j = (*i).begin(); j != (*i).end(); j++) {
-            string buf;
-            if ((*j)[0] == 'a') {
-                buf += "!a";
+            if ((*j) < 0) {
+                cout << "!";
             }
-            else buf += 'a';
-            buf += (*j).substr(1, (*j).size() - 1);
-            cout << buf << " ";
+            cout << 'a' << abs((*j)) << " ";
         }
         cout << endl;
     }
