@@ -8,6 +8,8 @@
 #include <time.h>
 #include <regex>
 #include <random>
+#include <iterator>
+#include <list>
 using namespace std;
 
 struct node
@@ -377,6 +379,11 @@ vector<vector<string>> sknfSearch(int wantedValue, vector<vector<string>> vec, n
         else {
             for (int i = 0; i < pairs.size(); ++i) {
                 vector<vector<string>> curResult = sknfSearch(pairs[i].second, sknfSearch(pairs[i].first, vec, node->left), node->right);
+                vecClean(curResult);
+                if (curResult.empty()) {
+                    vector<string> temp;
+                    curResult.push_back(temp);
+                }
                 answer.insert(answer.end(), curResult.begin(), curResult.end());
             }
         }
@@ -438,11 +445,92 @@ vector<vector<string>> sknfSearch(int wantedValue, vector<vector<string>> vec, n
             }
 
             //очищаем вектор от всех пустых комбинаций.(освобождаем очень много памяти)
-            vecClean(vec);
             //если вектор после очистки стал пустым, добавим один пустой элемент. Это нужно для разграничения пустых изначально и "опустошённых" векторов.
+            /*vecClean(vec);
             if (vec.empty()) {
                 vector<string> temp;
                 vec.push_back(temp);
+            }*/
+            return vec;
+        }
+    }
+}
+
+
+list<list<string>> sknfSearchList(int wantedValue, list<list<string>> vec, node* node) {
+
+    if (isOperator(node->value[0])) {
+        //если попали в оператор
+        vector<pair<int, int>> pairs = getSuitableOperands(node->value[0], wantedValue);
+
+        list<list<string>> answer;
+
+        if (node->value[0] == '!') {
+            answer = sknfSearchList(pairs[0].second, vec, node->right);
+        }
+        else {
+            for (int i = 0; i < pairs.size(); ++i) {
+                list<list<string>> curResult = sknfSearchList(pairs[i].second, sknfSearchList(pairs[i].first, vec, node->left), node->right);
+                answer.insert(answer.end(), curResult.begin(), curResult.end());
+            }
+        }
+        return answer;
+
+    }
+    else {
+        //если попали в переменную
+        string valueToPost = node->value;
+
+        if (wantedValue == 0)
+            valueToPost[0] = 'A';
+
+        //если вектор пустой, просто добавим туда одну комбинацию из одной переменной
+        if (vec.size() == 1 && (*vec.begin()).size() == 0) {
+            (*vec.begin()).push_back(valueToPost);
+            return vec;
+        }
+        else {
+            //внешний цикл по комбинациям
+            stringstream curVarNumberContainer(node->value.substr(1, node->value.size() - 1));
+            int curVarNumber;
+            curVarNumberContainer >> curVarNumber;
+
+            list<list<string>>::iterator it1;
+            it1 = vec.begin();
+            while (it1 != vec.end()) {
+                bool needToPost=true;
+                list<string>::iterator it2= (* it1).begin();
+
+                while (it2 != (*it1).end()) {
+                    stringstream varInVecContainer((*it2).substr(1, (*it2).size() - 1));
+                    int varInVec;
+                    varInVecContainer >> varInVec;
+
+                    // если нашли переменную с номером больше текущей, вставляем сюда.
+                    if (curVarNumber < varInVec) {
+                        (*it1).insert(it2, valueToPost);
+                        needToPost = false;
+                        ++it1;
+                        break;
+                    }
+
+                    //если наткнулись на эту же переменную, нужно проверить, в каком виде она входит
+                    else if (curVarNumber == varInVec) {
+
+                        //если она уже входит с другим знаком - комбинация дефектная, в мусор
+                        if (valueToPost[0] != (*it2)[0]) {
+                            vec.erase(it1++);
+                        }
+                        else { ++it1; }
+                        needToPost = false;
+                        break;
+                    }
+                    ++it2;
+                }
+                if (needToPost) {
+                    (*it1).push_back(valueToPost);
+                    ++it1;
+                }
             }
             return vec;
         }
@@ -850,13 +938,15 @@ int main()
     //string expression = "a1*(a1+!a2+a3)*(!a1+a3)";
     //cin >> expression;
 
-    pair<vector<vector<string>>, string> answer = formulaGeneratorSKNF(3 ,10, 13);
+    pair<vector<vector<string>>, string> answer = formulaGeneratorSKNF(2 ,8, 5);
 
 
     //////////////////////
     //return 0;
     //////////////////////
-    vector<vector<string>> stash;
+    list<list<string>> stash;
+    list<string> buf;
+    stash.push_back(buf);
     //vector<string> buf{"n"};
     //stash.push_back(buf);
     node* root = new node;
@@ -876,27 +966,27 @@ int main()
     cout << "Formula length:" << calculate.length() << endl;
 
     cout << "Are braces correct? " << checkBraces(calculate) << endl;
+    //calculate = "a1*a2+a3*(a3^a1)";
     cout << "SKNF search began." << endl;
     addnode(calculate, root);
     cout << "Tree ready." << endl;
-    inOrderTravers(root);
+    //inOrderTravers(root);
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-     stash = sknfSearch(0, stash, root);
+    stash = sknfSearchList(0, stash, root);
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     cout << "Time difference = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[ms]" << std::endl;
-    for (int i = 0; i < stash.size(); i++) {
-        if (!stash[i].empty()) {
-            for (int j = 0; j < stash[i].size(); j++) {
-                string buf;
-                if (stash[i][j][0] == 'a') {
-                    buf += "!a";
-                }
-                else buf += 'a';
-                buf += stash[i][j].substr(1, stash[i][j].size() - 1);
-                cout << buf << " ";
+
+    for (auto i = stash.begin(); i != stash.end(); i++) {
+        for (auto j = (*i).begin(); j != (*i).end(); j++) {
+            string buf;
+            if ((*j)[0] == 'a') {
+                buf += "!a";
             }
-            cout << endl;
+            else buf += 'a';
+            buf += (*j).substr(1, (*j).size() - 1);
+            cout << buf << " ";
         }
+        cout << endl;
     }
     return 0;
 }
