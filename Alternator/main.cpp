@@ -253,9 +253,9 @@ void addnode(string expression, node* tree) {
 //a5, a31341, A134
 
 
-list<list<int>> sknfSearch(int wantedValue, list<list<int>> lst, node* node) {
+void sknfSearch(int wantedValue, list<list<int>> &lst, node* node) {
     if (lst.size() == 0)
-        return lst;
+        return;
 
     if (node->value < 0) {         //если попали в оператор
 
@@ -264,34 +264,44 @@ list<list<int>> sknfSearch(int wantedValue, list<list<int>> lst, node* node) {
         list<list<int>> answer;    //сюда поместим ответ
 
         if (node->value == -1) {   //если оператор - отрицание - идём только направо (допустимый операнд лишь один)
-            answer = sknfSearch(pairs[0].second, lst, node->right);
+            sknfSearch(pairs[0].second, lst, node->right);
+            return;
         }
         else {
             //во всех остальных случаях идём налево и направо, рассматривая все допустимые пары операндов
-            list<list<int>> curResult;
             if (pairs.size() == 3) {
-                list<list<int>> fromLeft0 = sknfSearch(0, lst, node->left);
-                list<list<int>> fromLeft1 = sknfSearch(1, lst, node->left);
+                list<list<int>> fromLeft0 = lst;
+                sknfSearch(0, fromLeft0, node->left);
+                list<list<int>> fromLeft1 = lst;
+                sknfSearch(1, fromLeft1, node->left);
+                lst.clear();
                 for (int i = 0; i < pairs.size(); ++i) {
-                    curResult = sknfSearch(pairs[i].second, pairs[i].first == 1? fromLeft1: fromLeft0 , node->right);
-                    answer.insert(answer.end(), curResult.begin(), curResult.end());
+                    list<list<int>> buf = pairs[i].first == 1 ? fromLeft1 : fromLeft0;
+                    sknfSearch(pairs[i].second, buf, node->right);
+                    lst.insert(lst.end(), buf.begin(), buf.end());
                 }
+                return;
             }
             else {
+                list<list<int>> buf;
                 for (int i = 0; i < pairs.size(); ++i) {
-                    curResult = sknfSearch(pairs[i].second, sknfSearch(pairs[i].first, lst, node->left), node->right);
-                    answer.insert(answer.end(), curResult.begin(), curResult.end());
+                    buf = lst;
+                    sknfSearch(pairs[i].first, buf, node->left);
+                    sknfSearch(pairs[i].second, buf, node->right);
+                    answer.insert(answer.end(), buf.begin(), buf.end());
                 }
+                lst.clear();
+                lst = answer;
+                return;
             }
         }
-        return answer;
     }
     else {    //если перед нами переменная
         int valueToPost = wantedValue == 1 ? -node->value : node->value;
         //если список пустой изначально, просто добавим туда одну комбинацию из одной переменной
         if (lst.size() == 1 && (*lst.begin()).size() == 0) {
             (*lst.begin()).push_back(valueToPost);
-            return lst;
+            return;
         }
         else {  //если же список комбинаций не пуст, надо пройти по нему и добавить переменную туда, где ее не хватает. При противоречиях вырезать комбинацию
 
@@ -334,7 +344,7 @@ list<list<int>> sknfSearch(int wantedValue, list<list<int>> lst, node* node) {
                     ++it1;
                 }
             }
-            return lst;
+            return;
         }
     }
 }
@@ -686,7 +696,7 @@ int main()
 {
     srand(time(NULL));
 
-    pair<vector<vector<string>>, string> answer = formulaGeneratorSKNF(15 ,100, 823, 3000);
+    pair<vector<vector<string>>, string> answer = formulaGeneratorSKNF(15 ,20, 140, 2000);
 
     list<list<int>> resultSKNF;
     list<int> buf;
@@ -711,11 +721,11 @@ int main()
 
     cout << "Are braces correct? " << checkBraces(calculate) << endl;
     cout << "SKNF search began." << endl;
-    //calculate = "((((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5))))*(!((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5))))*(((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+!((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5)))))";
+    calculate = "((((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5))))*(!((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5))))*(((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+!((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5)))))";
     addnode(calculate, root);
     cout << "Tree ready." << endl;
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    resultSKNF = sknfSearch(0, resultSKNF, root);
+    sknfSearch(0, resultSKNF, root);
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     cout << "Time difference = " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " seconds" << std::endl;
 
