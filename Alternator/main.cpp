@@ -254,6 +254,8 @@ void addnode(string expression, node* tree) {
 
 
 list<list<int>> sknfSearch(int wantedValue, list<list<int>> lst, node* node) {
+    if (lst.size() == 0)
+        return lst;
 
     if (node->value < 0) {         //если попали в оператор
 
@@ -266,13 +268,21 @@ list<list<int>> sknfSearch(int wantedValue, list<list<int>> lst, node* node) {
         }
         else {
             //во всех остальных случаях идём налево и направо, рассматривая все допустимые пары операндов
-
             list<list<int>> curResult;
-            for (int i = 0; i < pairs.size(); ++i) {
-                curResult = sknfSearch(pairs[i].second, sknfSearch(pairs[i].first, lst, node->left), node->right);
-                answer.insert(answer.end(), curResult.begin(), curResult.end());
+            if (pairs.size() == 3) {
+                list<list<int>> fromLeft0 = sknfSearch(0, lst, node->left);
+                list<list<int>> fromLeft1 = sknfSearch(1, lst, node->left);
+                for (int i = 0; i < pairs.size(); ++i) {
+                    curResult = sknfSearch(pairs[i].second, pairs[i].first == 1? fromLeft1: fromLeft0 , node->right);
+                    answer.insert(answer.end(), curResult.begin(), curResult.end());
+                }
             }
-
+            else {
+                for (int i = 0; i < pairs.size(); ++i) {
+                    curResult = sknfSearch(pairs[i].second, sknfSearch(pairs[i].first, lst, node->left), node->right);
+                    answer.insert(answer.end(), curResult.begin(), curResult.end());
+                }
+            }
         }
         return answer;
     }
@@ -329,11 +339,8 @@ list<list<int>> sknfSearch(int wantedValue, list<list<int>> lst, node* node) {
     }
 }
 
-
-
-
 //функция возвращает случайно одну из подготовленных формул, являющуюся тождественным нулем или единицей.
-string complicateConstant(int numOfVars, int numOfVarsTotal, bool constFlag) {
+pair<string, int> complicateConstant(int numOfVars, int numOfVarsTotal, bool constFlag) {
     string answer;
 
     switch (numOfVars) {
@@ -362,7 +369,7 @@ string complicateConstant(int numOfVars, int numOfVarsTotal, bool constFlag) {
         if (constFlag) {
             answer = "!" + answer;
         }
-        return answer;
+        return make_pair(answer, variantsList[variant].size());
     }break;
     
     case 4: {
@@ -389,7 +396,7 @@ string complicateConstant(int numOfVars, int numOfVarsTotal, bool constFlag) {
         if (constFlag) {
             answer = "!" + answer;
         }
-        return answer;
+        return make_pair(answer, variantsList[variant].size());
     }break;
     }
 }
@@ -406,9 +413,77 @@ bool areMembersEqual(vector<string> a, vector<string> b) {
     return answer;
 }
 
+pair<vector<vector<string>>, string> newGenerator(int ceilNumOfMembers, int numOfVars, int numOfNegations, int approxSize) {
+    //проверки перед генерацией
+    if (ceilNumOfMembers > pow(2, numOfVars)) {
+        throw invalid_argument("Количество членов больше возможного");
+    }
 
-pair<vector<vector<string>>, string> formulaGeneratorSKNF(int ceilNumOfMembers, int numOfVars, int numOfNegations) {
+    if (numOfNegations > ceilNumOfMembers * numOfVars) {
+        throw invalid_argument("Количество отрицаний не может быть больше суммарного количества переменных в СКНФ");
+    }
 
+    vector<vector<string>> sknf;    //в этот вектор поместим будущую скнф
+
+    int negationsSet = 0;    //количество уже установленных знаков отрицания
+
+
+    for (int i = 0; i < ceilNumOfMembers; i++) {
+        vector<string> member;
+        for (int j = 1; j <= numOfVars; j++) {
+
+            member.push_back("a" + to_string(j));
+            int needNegation = rand() % 5;
+            if (needNegation == 1 && negationsSet < numOfNegations) {
+                member[member.size() - 1].insert(0, 1, '!');
+                negationsSet += 1;
+            }
+        }
+        sknf.push_back(member);
+    }
+
+    while (negationsSet < numOfNegations) {
+        bool isReady = false;
+
+        for (int i = 0; i < sknf.size(); i++) {
+
+            for (int j = 0; j < sknf[i].size(); j++) {
+                if (sknf[i][j][0] != '!' && (rand() % 2)) {
+                    negationsSet += 1;
+                    if (negationsSet == numOfNegations) {
+                        isReady = true;
+                        break;
+                    }
+                    sknf[i][j].insert(0, 1, '!');
+                }
+            }
+            if (isReady)
+                break;
+        }
+    }
+
+
+    //теперь нужно удалить все дубликаты из скнф чтобы предоставить её на выход. А использовать далее можно и с дубликатами
+    vector<vector<string>> standartizedSKNF;
+
+    for (int i = 0; i < sknf.size(); i++) {
+        bool needToAdd = true;
+        for (int j = 0; j < standartizedSKNF.size(); j++) {
+            if (areMembersEqual(sknf[i], standartizedSKNF[j])) {
+                needToAdd = false;
+            }
+        }
+        if (needToAdd) {
+            standartizedSKNF.push_back(sknf[i]);
+        }
+    }
+
+    //такое количество переменных и операторов нужно докинуть,отнимем то, что уже занимает сама СНКФ.
+    int needToAdd = approxSize - (2 * numOfVars - 1) * (2 * ceilNumOfMembers - 1);
+}
+
+
+pair<vector<vector<string>>, string> formulaGeneratorSKNF(int ceilNumOfMembers, int numOfVars, int numOfNegations, int wantedApproximateSize) {
 
     //проверки перед генерацией
     if (ceilNumOfMembers > pow(2, numOfVars)) {
@@ -460,6 +535,9 @@ pair<vector<vector<string>>, string> formulaGeneratorSKNF(int ceilNumOfMembers, 
     } 
     //теперь нужно удалить все дубликаты из скнф чтобы предоставить её на выход. А использовать далее можно и с дубликатами
     vector<vector<string>> standartizedSKNF;
+    cout << "SKNF Length: ";
+    int sknfSize = (2 * sknf.size()) * (2 * sknf[0].size() - 1);
+    cout << sknfSize << endl;
 
     for (int i = 0; i < sknf.size(); i++) {
         bool needToAdd = true;
@@ -474,45 +552,49 @@ pair<vector<vector<string>>, string> formulaGeneratorSKNF(int ceilNumOfMembers, 
     }
     
 
-    
-
-
     //теперь усложним. Усложнять будем на нескольких уровнях: на уровне переменных, уровне члена, уровне всех членов и потом все соединим
-    // 
     //усложнение на уровне переменных
+
+    int lengthToAdd = wantedApproximateSize - 4 * ceilNumOfMembers * numOfVars;
+
+    int onVarLevel = lengthToAdd * 0.25;
+    int onMemberLevel = lengthToAdd * 0.25;
+    int onFormulaLevel = lengthToAdd * 0.5;
+
+    int perMember = onVarLevel / ceilNumOfMembers;
     for (int i = 0; i < sknf.size();i++) {
 
-        for (int j = 0; j < sknf[i].size(); j++) {
+        
+        pair<string, int> ans;
+        int toAdd = perMember;
+        while (toAdd > 0.1 * perMember) {
+            for (int j = 0; j < sknf[i].size(); j++) {
 
-            int needComplicate = rand() % 4;
+                if (toAdd <= 0.1 * perMember)
+                    break;
 
-            if (needComplicate == 1) {
+                int needComplicate = rand() % numOfVars;
 
-                int zeroOrOne = rand() % 2;
-                if (zeroOrOne == 0) {
-                    sknf[i][j] += "+" + complicateConstant(3 + rand() % 2, numOfVars, 0);
+                if (needComplicate == 1) {
+
+                    int zeroOrOne = rand() % numOfVars;
+                    if (zeroOrOne == 0) {
+                        ans = complicateConstant(3 + rand() % 2, numOfVars, 0);
+                        sknf[i][j] += "+" + ans.first;
+                        toAdd -= ans.second;
+                    }
+                    else {
+                        ans = complicateConstant(3 + rand() % 2, numOfVars, 1);
+                        sknf[i][j] += "*" + ans.first;
+                        toAdd -= ans.second;
+                    }
+                    sknf[i][j] = "(" + sknf[i][j] + ")";
                 }
-                else {
-                    sknf[i][j] += "*" + complicateConstant(3 + rand() % 2, numOfVars, 1);
-                }
-                sknf[i][j] = "(" + sknf[i][j] + ")";
             }
         }
     }
 
-
-    /*string tempAnswer;
-    for (int i = 0; i < sknf.size(); i++) {
-        tempAnswer += "(";
-        for (int j = 0; j < sknf[i].size(); j++) {
-            tempAnswer += sknf[i][j] + "+";
-        }
-        tempAnswer.pop_back();
-        tempAnswer += ")*";
-    }
-    tempAnswer.pop_back();
-    return make_pair(standartizedSKNF, tempAnswer);*/
-
+    cout << "After vars: " << sknfSize << endl;
     //усложнение на уровне члена
 
     for (int i = 0; i < sknf.size(); i++) {
@@ -524,11 +606,15 @@ pair<vector<vector<string>>, string> formulaGeneratorSKNF(int ceilNumOfMembers, 
         shuffle(sknf[i].begin(), sknf[i].end(), rng);
         int numOfIterations = (sknf[i].size() - rand() % sknf[i].size()) / 2;
 
+        int toAdd = onMemberLevel;
         for (int j = 0; j < numOfIterations; j++) {
+            if (toAdd < onMemberLevel * 0.1)
+                break;
             string newMember;
             int lastIndex = sknf[i].size() - 1;
             //x+y=x^y^x*y мб скобки по краям не нужны
             newMember = "(" + sknf[i][0] + "^" + sknf[i][lastIndex] + "^" + sknf[i][0] + "*" + sknf[i][lastIndex] + ")";
+            toAdd -= sknf[i][0].size() + sknf[i][lastIndex].size() + 5;
             buf.push_back(newMember);
             sknf[i].pop_back();
             sknf[i].erase(sknf[i].begin());
@@ -537,6 +623,15 @@ pair<vector<vector<string>>, string> formulaGeneratorSKNF(int ceilNumOfMembers, 
         sknf[i] = buf;
     }
 
+    cout << "String length after member level: ";
+    int sasa = 0;
+
+    for (int i = 0; i < sknf.size(); i++) {
+        for (int j = 0; j < sknf[i].size(); j++) {
+            sasa += sknf[i][j].size();
+        }
+    }
+    cout << sasa << endl;
 
     //теперь усложнённые члены соединим в строки
     vector <string> compMembSKNF;
@@ -550,7 +645,13 @@ pair<vector<vector<string>>, string> formulaGeneratorSKNF(int ceilNumOfMembers, 
         compMembSKNF.push_back(buf);
     }
     //теперь проведём усложнение на уровне формулы. Между членами стоит *
+    cout << "Connected Members: ";
+    sasa = 0;
 
+    for (int i = 0; i < sknf.size(); i++) {
+        sasa += compMembSKNF[i].size();
+    }
+    cout << sasa << endl;
     random_device rd;
     default_random_engine rng(rd());
 
@@ -558,10 +659,12 @@ pair<vector<vector<string>>, string> formulaGeneratorSKNF(int ceilNumOfMembers, 
     int numOfIterations = (compMembSKNF.size() - rand() % compMembSKNF.size()) / 2;
 
     vector<string> abobus;
+    
     for (int i = 0; i < numOfIterations; i++) {
         string buf;
         int lastIndex = compMembSKNF.size() - 1;
         buf = "((" + compMembSKNF[0] + "+" + compMembSKNF[lastIndex] + ")*(!" + compMembSKNF[0] + "+" + compMembSKNF[lastIndex] + ")*(" + compMembSKNF[0] + "+!" + compMembSKNF[lastIndex] + "))";
+        onFormulaLevel -= 2 * compMembSKNF[0].size() + compMembSKNF[lastIndex].size() + 15;
         abobus.push_back(buf);
         compMembSKNF.pop_back();
         compMembSKNF.erase(compMembSKNF.begin());
@@ -583,7 +686,7 @@ int main()
 {
     srand(time(NULL));
 
-    pair<vector<vector<string>>, string> answer = formulaGeneratorSKNF(4 ,4, 5);
+    pair<vector<vector<string>>, string> answer = formulaGeneratorSKNF(15 ,100, 823, 3000);
 
     list<list<int>> resultSKNF;
     list<int> buf;
@@ -614,7 +717,7 @@ int main()
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     resultSKNF = sknfSearch(0, resultSKNF, root);
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    cout << "Time difference = " << std::chrono::duration_cast<std::chrono::minutes>(end - begin).count() << "[ms]" << std::endl;
+    cout << "Time difference = " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " seconds" << std::endl;
 
     for (auto i = resultSKNF.begin(); i != resultSKNF.end(); i++) {
         for (auto j = (*i).begin(); j != (*i).end(); j++) {
