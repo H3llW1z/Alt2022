@@ -1,4 +1,4 @@
-#include <iostream>
+п»ї#include <iostream>
 #include <vector>
 #include <algorithm>
 #include <chrono>
@@ -11,7 +11,7 @@
 #include <list>
 using namespace std;
 
-//структура, определяющая узел дерева выражения
+//СЃС‚СЂСѓРєС‚СѓСЂР°, РѕРїСЂРµРґРµР»СЏСЋС‰Р°СЏ СѓР·РµР» РґРµСЂРµРІР° РІС‹СЂР°Р¶РµРЅРёСЏ
 struct node
 {
     struct node* left = nullptr;
@@ -20,7 +20,7 @@ struct node
 };
 
 
-//Проверяет правильность скобочной конструкции
+//РџСЂРѕРІРµСЂСЏРµС‚ РїСЂР°РІРёР»СЊРЅРѕСЃС‚СЊ СЃРєРѕР±РѕС‡РЅРѕР№ РєРѕРЅСЃС‚СЂСѓРєС†РёРё
 bool checkBraces(string str) {
     int braceCounter = 0;
     for (int i = 0; i <= str.size() - 1; i++) {
@@ -39,7 +39,7 @@ bool checkBraces(string str) {
 }
 
 
-//Удаляет внешние парные скобки, прим. ((a+b)) -> a+b
+//РЈРґР°Р»СЏРµС‚ РІРЅРµС€РЅРёРµ РїР°СЂРЅС‹Рµ СЃРєРѕР±РєРё, РїСЂРёРј. ((a+b)) -> a+b
 void removeOuterBraces(string &str) {
     if (str[0] != '(' || str[str.size() - 1] != ')')
         return;
@@ -56,7 +56,7 @@ void removeOuterBraces(string &str) {
 }
 
 
-//вспомогательная структура для поиска наименее приоритетного оператора
+//РІСЃРїРѕРјРѕРіР°С‚РµР»СЊРЅР°СЏ СЃС‚СЂСѓРєС‚СѓСЂР° РґР»СЏ РїРѕРёСЃРєР° РЅР°РёРјРµРЅРµРµ РїСЂРёРѕСЂРёС‚РµС‚РЅРѕРіРѕ РѕРїРµСЂР°С‚РѕСЂР°
 struct operators
 {
     operators(int ind, char val) {
@@ -68,9 +68,9 @@ struct operators
 };
 
 
-//массив всех доступных операторов, расставленных в порядке возрастания приоритета
+//РјР°СЃСЃРёРІ РІСЃРµС… РґРѕСЃС‚СѓРїРЅС‹С… РѕРїРµСЂР°С‚РѕСЂРѕРІ, СЂР°СЃСЃС‚Р°РІР»РµРЅРЅС‹С… РІ РїРѕСЂСЏРґРєРµ РІРѕР·СЂР°СЃС‚Р°РЅРёСЏ РїСЂРёРѕСЂРёС‚РµС‚Р°
 char priorityArray[6] = { '=', '>', '^', '+', '*', '!'};
-//числ. обоз-я операторов -6   -5   -4   -3   -2   -1
+//С‡РёСЃР». РѕР±РѕР·-СЏ РѕРїРµСЂР°С‚РѕСЂРѕРІ -6   -5   -4   -3   -2   -1
 
 
 int getOperatorsIntForm(char op) {
@@ -86,7 +86,7 @@ int getOperatorsIntForm(char op) {
 }
 
 
-  //ищет наименее приоритетный оператор и возвращает его позицию в строке
+  //РёС‰РµС‚ РЅР°РёРјРµРЅРµРµ РїСЂРёРѕСЂРёС‚РµС‚РЅС‹Р№ РѕРїРµСЂР°С‚РѕСЂ Рё РІРѕР·РІСЂР°С‰Р°РµС‚ РµРіРѕ РїРѕР·РёС†РёСЋ РІ СЃС‚СЂРѕРєРµ
 int find_low_priority_operator(string expression) {
     bool isThereOperator = false;
     for (int i = 0; i < expression.size(); i++) {
@@ -137,7 +137,7 @@ int find_low_priority_operator(string expression) {
 }
 
 
-//возвращает список всех допустимых операндов в зависимости от оператора и желаемого значения
+//РІРѕР·РІСЂР°С‰Р°РµС‚ СЃРїРёСЃРѕРє РІСЃРµС… РґРѕРїСѓСЃС‚РёРјС‹С… РѕРїРµСЂР°РЅРґРѕРІ РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ РѕРїРµСЂР°С‚РѕСЂР° Рё Р¶РµР»Р°РµРјРѕРіРѕ Р·РЅР°С‡РµРЅРёСЏ
 vector<pair<int, int>> getSuitableOperands(int op, int wanted) {
     vector<pair<int, int>> ans;
     switch (op) {
@@ -209,11 +209,11 @@ vector<pair<int, int>> getSuitableOperands(int op, int wanted) {
 }
 
 
-//добавляет узлы в дерево выражения
+//РґРѕР±Р°РІР»СЏРµС‚ СѓР·Р»С‹ РІ РґРµСЂРµРІРѕ РІС‹СЂР°Р¶РµРЅРёСЏ
 void addnode(string expression, node* tree) {
     removeOuterBraces(expression);
     int lpIndex = find_low_priority_operator(expression);
-    //если оператора нет, то имеем строку, содержащую только одну переменную, прим. a15
+    //РµСЃР»Рё РѕРїРµСЂР°С‚РѕСЂР° РЅРµС‚, С‚Рѕ РёРјРµРµРј СЃС‚СЂРѕРєСѓ, СЃРѕРґРµСЂР¶Р°С‰СѓСЋ С‚РѕР»СЊРєРѕ РѕРґРЅСѓ РїРµСЂРµРјРµРЅРЅСѓСЋ, РїСЂРёРј. a15
     if (lpIndex == -1) { 
         stringstream intVarContainer(expression.substr(1, expression.size() - 1));
         int intVar;
@@ -223,7 +223,7 @@ void addnode(string expression, node* tree) {
     }
     tree->value = getOperatorsIntForm(expression[lpIndex]);
    
-    if (tree->value == -1) { // если !
+    if (tree->value == -1) { // РµСЃР»Рё !
         tree->right = new node;
         addnode(expression.substr(lpIndex + 1), tree->right);
     }
@@ -237,7 +237,7 @@ void addnode(string expression, node* tree) {
 
 
 // a - 0, A - 1
-// раньше было наоборот
+// СЂР°РЅСЊС€Рµ Р±С‹Р»Рѕ РЅР°РѕР±РѕСЂРѕС‚
 //
 //            ^
 //          /   \
@@ -257,16 +257,16 @@ void sknfSearch(int wantedValue, list<list<short>> &lst, node* node) {
     if (lst.size() == 0)
         return;
 
-    if (node->value < 0) {         //если попали в оператор
+    if (node->value < 0) {         //РµСЃР»Рё РїРѕРїР°Р»Рё РІ РѕРїРµСЂР°С‚РѕСЂ
 
-        vector<pair<int, int>> pairs = getSuitableOperands(node->value, wantedValue);  //получим все допустымые пары операндов
+        vector<pair<int, int>> pairs = getSuitableOperands(node->value, wantedValue);  //РїРѕР»СѓС‡РёРј РІСЃРµ РґРѕРїСѓСЃС‚С‹РјС‹Рµ РїР°СЂС‹ РѕРїРµСЂР°РЅРґРѕРІ
 
-        if (node->value == -1) {   //если оператор - отрицание - идём только направо (допустимый операнд лишь один)
+        if (node->value == -1) {   //РµСЃР»Рё РѕРїРµСЂР°С‚РѕСЂ - РѕС‚СЂРёС†Р°РЅРёРµ - РёРґС‘Рј С‚РѕР»СЊРєРѕ РЅР°РїСЂР°РІРѕ (РґРѕРїСѓСЃС‚РёРјС‹Р№ РѕРїРµСЂР°РЅРґ Р»РёС€СЊ РѕРґРёРЅ)
             sknfSearch(pairs[0].second, lst, node->right);
             return;
         }
         else {
-            //во всех остальных случаях идём налево и направо, рассматривая все допустимые пары операндов
+            //РІРѕ РІСЃРµС… РѕСЃС‚Р°Р»СЊРЅС‹С… СЃР»СѓС‡Р°СЏС… РёРґС‘Рј РЅР°Р»РµРІРѕ Рё РЅР°РїСЂР°РІРѕ, СЂР°СЃСЃРјР°С‚СЂРёРІР°СЏ РІСЃРµ РґРѕРїСѓСЃС‚РёРјС‹Рµ РїР°СЂС‹ РѕРїРµСЂР°РЅРґРѕРІ
             list<list<short>> fromLeft0;
             list<list<short>> fromLeft1;
             if (pairs.size() > 1) {
@@ -285,7 +285,7 @@ void sknfSearch(int wantedValue, list<list<short>> &lst, node* node) {
             }
 
 
-            lst.clear();  ///не факт что работает как надо
+            lst.clear();  ///РЅРµ С„Р°РєС‚ С‡С‚Рѕ СЂР°Р±РѕС‚Р°РµС‚ РєР°Рє РЅР°РґРѕ
             for (int i = 0; i < pairs.size(); ++i) {
                 list<list<short>> buf = pairs[i].first == 1 ? fromLeft1 : fromLeft0;
                 sknfSearch(pairs[i].second, buf, node->right);
@@ -294,26 +294,26 @@ void sknfSearch(int wantedValue, list<list<short>> &lst, node* node) {
             return;
         }
     }
-    else {    //если перед нами переменная
+    else {    //РµСЃР»Рё РїРµСЂРµРґ РЅР°РјРё РїРµСЂРµРјРµРЅРЅР°СЏ
         int valueToPost = wantedValue == 1 ? -node->value : node->value;
-        //если список пустой изначально, просто добавим туда одну комбинацию из одной переменной
+        //РµСЃР»Рё СЃРїРёСЃРѕРє РїСѓСЃС‚РѕР№ РёР·РЅР°С‡Р°Р»СЊРЅРѕ, РїСЂРѕСЃС‚Рѕ РґРѕР±Р°РІРёРј С‚СѓРґР° РѕРґРЅСѓ РєРѕРјР±РёРЅР°С†РёСЋ РёР· РѕРґРЅРѕР№ РїРµСЂРµРјРµРЅРЅРѕР№
         if (lst.size() == 1 && (*lst.begin()).size() == 0) {
             (*lst.begin()).push_back(valueToPost);
             return;
         }
-        else {  //если же список комбинаций не пуст, надо пройти по нему и добавить переменную туда, где ее не хватает. При противоречиях вырезать комбинацию
+        else {  //РµСЃР»Рё Р¶Рµ СЃРїРёСЃРѕРє РєРѕРјР±РёРЅР°С†РёР№ РЅРµ РїСѓСЃС‚, РЅР°РґРѕ РїСЂРѕР№С‚Рё РїРѕ РЅРµРјСѓ Рё РґРѕР±Р°РІРёС‚СЊ РїРµСЂРµРјРµРЅРЅСѓСЋ С‚СѓРґР°, РіРґРµ РµРµ РЅРµ С…РІР°С‚Р°РµС‚. РџСЂРё РїСЂРѕС‚РёРІРѕСЂРµС‡РёСЏС… РІС‹СЂРµР·Р°С‚СЊ РєРѕРјР±РёРЅР°С†РёСЋ
 
 
-            list<list<short>>::iterator it1;   //итератор для перемещения по списку комбинаций
-            list<short>::iterator it2;         //итератор для перемещения внутри одной комбинации
-            bool needToPost;        //храни информацию, нужно ли записать переменную в список
-            it1 = lst.begin();  //внешний итератор поместим в начало списка комбинаций
+            list<list<short>>::iterator it1;   //РёС‚РµСЂР°С‚РѕСЂ РґР»СЏ РїРµСЂРµРјРµС‰РµРЅРёСЏ РїРѕ СЃРїРёСЃРєСѓ РєРѕРјР±РёРЅР°С†РёР№
+            list<short>::iterator it2;         //РёС‚РµСЂР°С‚РѕСЂ РґР»СЏ РїРµСЂРµРјРµС‰РµРЅРёСЏ РІРЅСѓС‚СЂРё РѕРґРЅРѕР№ РєРѕРјР±РёРЅР°С†РёРё
+            bool needToPost;        //С…СЂР°РЅРё РёРЅС„РѕСЂРјР°С†РёСЋ, РЅСѓР¶РЅРѕ Р»Рё Р·Р°РїРёСЃР°С‚СЊ РїРµСЂРµРјРµРЅРЅСѓСЋ РІ СЃРїРёСЃРѕРє
+            it1 = lst.begin();  //РІРЅРµС€РЅРёР№ РёС‚РµСЂР°С‚РѕСЂ РїРѕРјРµСЃС‚РёРј РІ РЅР°С‡Р°Р»Рѕ СЃРїРёСЃРєР° РєРѕРјР±РёРЅР°С†РёР№
             while (it1 != lst.end()) {
                 needToPost=true;
                 it2 = (* it1).begin();
 
                 while (it2 != (*it1).end()) {
-                    // если нашли переменную с номером больше текущей, вставляем сюда.
+                    // РµСЃР»Рё РЅР°С€Р»Рё РїРµСЂРµРјРµРЅРЅСѓСЋ СЃ РЅРѕРјРµСЂРѕРј Р±РѕР»СЊС€Рµ С‚РµРєСѓС‰РµР№, РІСЃС‚Р°РІР»СЏРµРј СЃСЋРґР°.
                     if (node->value < abs((*it2))) {
                         (*it1).insert(it2, valueToPost);
                         needToPost = false;
@@ -321,10 +321,10 @@ void sknfSearch(int wantedValue, list<list<short>> &lst, node* node) {
                         break;
                     }
 
-                    //если наткнулись на эту же переменную, нужно проверить, в каком виде она входит
+                    //РµСЃР»Рё РЅР°С‚РєРЅСѓР»РёСЃСЊ РЅР° СЌС‚Сѓ Р¶Рµ РїРµСЂРµРјРµРЅРЅСѓСЋ, РЅСѓР¶РЅРѕ РїСЂРѕРІРµСЂРёС‚СЊ, РІ РєР°РєРѕРј РІРёРґРµ РѕРЅР° РІС…РѕРґРёС‚
                     else if (node->value == abs((*it2))) {
 
-                        //если она уже входит с другим знаком - комбинация дефектная, в мусор
+                        //РµСЃР»Рё РѕРЅР° СѓР¶Рµ РІС…РѕРґРёС‚ СЃ РґСЂСѓРіРёРј Р·РЅР°РєРѕРј - РєРѕРјР±РёРЅР°С†РёСЏ РґРµС„РµРєС‚РЅР°СЏ, РІ РјСѓСЃРѕСЂ
                         if (valueToPost != (*it2)) {
                             lst.erase(it1++);
                         }
@@ -347,7 +347,7 @@ void sknfSearch(int wantedValue, list<list<short>> &lst, node* node) {
     }
 }
 
-//размер массива операторов указан как 6, может быть увеличен!!!
+//СЂР°Р·РјРµСЂ РјР°СЃСЃРёРІР° РѕРїРµСЂР°С‚РѕСЂРѕРІ СѓРєР°Р·Р°РЅ РєР°Рє 6, РјРѕР¶РµС‚ Р±С‹С‚СЊ СѓРІРµР»РёС‡РµРЅ!!!
 bool isOperator(char ch) {
 
     for (int i = 0; i < 6; i++) {
@@ -367,7 +367,7 @@ int countVarsAndOperators(string str) {
     return answer;
 }
 
-//функция возвращает случайно одну из подготовленных формул, являющуюся тождественным нулем или единицей.
+//С„СѓРЅРєС†РёСЏ РІРѕР·РІСЂР°С‰Р°РµС‚ СЃР»СѓС‡Р°Р№РЅРѕ РѕРґРЅСѓ РёР· РїРѕРґРіРѕС‚РѕРІР»РµРЅРЅС‹С… С„РѕСЂРјСѓР», СЏРІР»СЏСЋС‰СѓСЋСЃСЏ С‚РѕР¶РґРµСЃС‚РІРµРЅРЅС‹Рј РЅСѓР»РµРј РёР»Рё РµРґРёРЅРёС†РµР№.
 string complicateConstant(int numOfVars, int numOfVarsTotal, bool constFlag) {
     string answer;
 
@@ -429,7 +429,7 @@ string complicateConstant(int numOfVars, int numOfVarsTotal, bool constFlag) {
     }
 }
 
-//проверяет, являются ли члены СКНФ одинаковыми по составу, нужна для удаления дубликатов для вывода в качестве ожидаемого ответа
+//РїСЂРѕРІРµСЂСЏРµС‚, СЏРІР»СЏСЋС‚СЃСЏ Р»Рё С‡Р»РµРЅС‹ РЎРљРќР¤ РѕРґРёРЅР°РєРѕРІС‹РјРё РїРѕ СЃРѕСЃС‚Р°РІСѓ, РЅСѓР¶РЅР° РґР»СЏ СѓРґР°Р»РµРЅРёСЏ РґСѓР±Р»РёРєР°С‚РѕРІ РґР»СЏ РІС‹РІРѕРґР° РІ РєР°С‡РµСЃС‚РІРµ РѕР¶РёРґР°РµРјРѕРіРѕ РѕС‚РІРµС‚Р°
 bool areMembersEqual(vector<string> a, vector<string> b) {
     bool answer = true;
     int memberLength = a.size();
@@ -442,7 +442,7 @@ bool areMembersEqual(vector<string> a, vector<string> b) {
 }
 
 pair<vector<vector<string>>, string> newGenerator(int ceilNumOfMembers, int numOfVars, int numOfNegations, int approxSize) {
-    //проверки перед генерацией
+    //РїСЂРѕРІРµСЂРєРё РїРµСЂРµРґ РіРµРЅРµСЂР°С†РёРµР№
     if (ceilNumOfMembers > pow(2, numOfVars)) {
         throw invalid_argument("Number of members bigger than possible");
     }
@@ -456,9 +456,9 @@ pair<vector<vector<string>>, string> newGenerator(int ceilNumOfMembers, int numO
     }
 
 
-    vector<vector<string>> sknf;    //в этот вектор поместим будущую скнф
+    vector<vector<string>> sknf;    //РІ СЌС‚РѕС‚ РІРµРєС‚РѕСЂ РїРѕРјРµСЃС‚РёРј Р±СѓРґСѓС‰СѓСЋ СЃРєРЅС„
 
-    int negationsSet = 0;    //количество уже установленных знаков отрицания
+    int negationsSet = 0;    //РєРѕР»РёС‡РµСЃС‚РІРѕ СѓР¶Рµ СѓСЃС‚Р°РЅРѕРІР»РµРЅРЅС‹С… Р·РЅР°РєРѕРІ РѕС‚СЂРёС†Р°РЅРёСЏ
 
 
     for (int i = 0; i < ceilNumOfMembers; i++) {
@@ -496,7 +496,7 @@ pair<vector<vector<string>>, string> newGenerator(int ceilNumOfMembers, int numO
     }
 
 
-    //теперь нужно удалить все дубликаты из скнф чтобы предоставить её на выход. А использовать далее можно и с дубликатами
+    //С‚РµРїРµСЂСЊ РЅСѓР¶РЅРѕ СѓРґР°Р»РёС‚СЊ РІСЃРµ РґСѓР±Р»РёРєР°С‚С‹ РёР· СЃРєРЅС„ С‡С‚РѕР±С‹ РїСЂРµРґРѕСЃС‚Р°РІРёС‚СЊ РµС‘ РЅР° РІС‹С…РѕРґ. Рђ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РґР°Р»РµРµ РјРѕР¶РЅРѕ Рё СЃ РґСѓР±Р»РёРєР°С‚Р°РјРё
     vector<vector<string>> standartizedSKNF;
 
     for (int i = 0; i < sknf.size(); i++) {
@@ -511,15 +511,15 @@ pair<vector<vector<string>>, string> newGenerator(int ceilNumOfMembers, int numO
         }
     }
 
-    //такое количество переменных и операторов нужно докинуть,отнимем то, что уже занимает сама СНКФ.
+    //С‚Р°РєРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РїРµСЂРµРјРµРЅРЅС‹С… Рё РѕРїРµСЂР°С‚РѕСЂРѕРІ РЅСѓР¶РЅРѕ РґРѕРєРёРЅСѓС‚СЊ,РѕС‚РЅРёРјРµРј С‚Рѕ, С‡С‚Рѕ СѓР¶Рµ Р·Р°РЅРёРјР°РµС‚ СЃР°РјР° РЎРќРљР¤.
     int needToAdd = approxSize - (2 * numOfVars - 1) * (2 * ceilNumOfMembers - 1) - negationsSet;
 
-    //Это можно в принципе менять. Это распределение ожидаемого увеличения длины на каждом уровне.
+    //Р­С‚Рѕ РјРѕР¶РЅРѕ РІ РїСЂРёРЅС†РёРїРµ РјРµРЅСЏС‚СЊ. Р­С‚Рѕ СЂР°СЃРїСЂРµРґРµР»РµРЅРёРµ РѕР¶РёРґР°РµРјРѕРіРѕ СѓРІРµР»РёС‡РµРЅРёСЏ РґР»РёРЅС‹ РЅР° РєР°Р¶РґРѕРј СѓСЂРѕРІРЅРµ.
     int onVarLevel = needToAdd / 4;
     int onMemberLevel = onVarLevel;
     int onFormulaLevel = needToAdd / 2;
 
-    //усложнение на уровне переменных. К переменным добавляем формулы, являющиеся тождественными нулями или единицами. (x=x*1 or x=x+0)
+    //СѓСЃР»РѕР¶РЅРµРЅРёРµ РЅР° СѓСЂРѕРІРЅРµ РїРµСЂРµРјРµРЅРЅС‹С…. Рљ РїРµСЂРµРјРµРЅРЅС‹Рј РґРѕР±Р°РІР»СЏРµРј С„РѕСЂРјСѓР»С‹, СЏРІР»СЏСЋС‰РёРµСЃСЏ С‚РѕР¶РґРµСЃС‚РІРµРЅРЅС‹РјРё РЅСѓР»СЏРјРё РёР»Рё РµРґРёРЅРёС†Р°РјРё. (x=x*1 or x=x+0)
 
     int perMember = onVarLevel / ceilNumOfMembers;
     
@@ -557,7 +557,7 @@ pair<vector<vector<string>>, string> newGenerator(int ceilNumOfMembers, int numO
     }
 
 
-    //теперь проведём усложнение на уровне члена СКНФ. Будем запутывать переменные.
+    //С‚РµРїРµСЂСЊ РїСЂРѕРІРµРґС‘Рј СѓСЃР»РѕР¶РЅРµРЅРёРµ РЅР° СѓСЂРѕРІРЅРµ С‡Р»РµРЅР° РЎРљРќР¤. Р‘СѓРґРµРј Р·Р°РїСѓС‚С‹РІР°С‚СЊ РїРµСЂРµРјРµРЅРЅС‹Рµ.
 
     random_device rd;
     default_random_engine rng(rd());
@@ -585,7 +585,7 @@ pair<vector<vector<string>>, string> newGenerator(int ceilNumOfMembers, int numO
         }
     }
 
-    //теперь усложнённые члены соединим в строки
+    //С‚РµРїРµСЂСЊ СѓСЃР»РѕР¶РЅС‘РЅРЅС‹Рµ С‡Р»РµРЅС‹ СЃРѕРµРґРёРЅРёРј РІ СЃС‚СЂРѕРєРё
     vector <string> compMembSKNF;
     for (int i = 0; i < sknf.size(); i++) {
         string buf = "(";
@@ -598,7 +598,7 @@ pair<vector<vector<string>>, string> newGenerator(int ceilNumOfMembers, int numO
     }
 
 
-    //теперь проведём усложнение на уровне формулы, запутывая члены СКНФ. Между членами стоит *
+    //С‚РµРїРµСЂСЊ РїСЂРѕРІРµРґС‘Рј СѓСЃР»РѕР¶РЅРµРЅРёРµ РЅР° СѓСЂРѕРІРЅРµ С„РѕСЂРјСѓР»С‹, Р·Р°РїСѓС‚С‹РІР°СЏ С‡Р»РµРЅС‹ РЎРљРќР¤. РњРµР¶РґСѓ С‡Р»РµРЅР°РјРё СЃС‚РѕРёС‚ *
     //onFormulaLevel
 
     int toAdd = onFormulaLevel;
@@ -614,7 +614,7 @@ pair<vector<vector<string>>, string> newGenerator(int ceilNumOfMembers, int numO
         compMembSKNF.push_back(buf);
     }
     
-    //наконец, соединим всё в одну строку
+    //РЅР°РєРѕРЅРµС†, СЃРѕРµРґРёРЅРёРј РІСЃС‘ РІ РѕРґРЅСѓ СЃС‚СЂРѕРєСѓ
     string answer;
 
     for (int i = 0; i < compMembSKNF.size(); i++) {
