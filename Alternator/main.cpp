@@ -253,45 +253,132 @@ void addnode(string expression, node* tree) {
 //a5, a31341, A134
 
 
-void sknfSearch(int wantedValue, list<list<short>> &lst, node* node) {
+void sknfSearch(bool wantedValue, list<list<short>> &lst, node* node) {
+    list<list<short>> copy;
+    list<list<short>> copy2;
+
     if (lst.size() == 0)
         return;
 
     if (node->value < 0) {         //если попали в оператор
 
-        vector<pair<int, int>> pairs = getSuitableOperands(node->value, wantedValue);  //получим все допустымые пары операндов
-
-        if (node->value == -1) {   //если оператор - отрицание - идём только направо (допустимый операнд лишь один)
-            sknfSearch(pairs[0].second, lst, node->right);
+        switch (node->value) {
+        case -1:   // отрицание
+        {
+            sknfSearch(!wantedValue, lst, node->right);
             return;
-        }
-        else {
-            //во всех остальных случаях идём налево и направо, рассматривая все допустимые пары операндов
-            list<list<short>> fromLeft0;
-            list<list<short>> fromLeft1;
-            if (pairs.size() > 1) {
-                fromLeft1 = lst;
-                sknfSearch(1, fromLeft1, node->left);
-                fromLeft0 = lst;
-                sknfSearch(0, fromLeft0, node->left);
-            }
-            else if (pairs[0].first == 1) {
-                fromLeft1 = lst;
-                sknfSearch(1, fromLeft1, node->left);
+        }; break;
+        case -2:   // умножение
+        {
+            if (wantedValue) {
+                sknfSearch(1, lst, node->left);
+                sknfSearch(1, lst, node->right);
+                return;
             }
             else {
-                fromLeft0 = lst;
-                sknfSearch(0, fromLeft0, node->left);
-            }
+                copy = lst;
+                sknfSearch(0, copy, node->left);
+                copy2 = copy;
 
+                sknfSearch(1, lst, node->left);
+                sknfSearch(0, lst, node->right);
 
-            lst.clear();  ///не факт что работает как надо
-            for (int i = 0; i < pairs.size(); ++i) {
-                list<list<short>> buf = pairs[i].first == 1 ? fromLeft1 : fromLeft0;
-                sknfSearch(pairs[i].second, buf, node->right);
-                lst.insert(lst.end(), buf.begin(), buf.end());
+                sknfSearch(0, copy, node->right);
+                lst.insert(lst.end(), copy.begin(), copy.end());
+                copy.clear(); //возможно не работает
+
+                sknfSearch(1, copy2, node->right);
+                lst.insert(lst.end(), copy2.begin(), copy2.end());
+                return;
             }
+        }; break;
+        case -3:   // сложение 
+        {
+            if (wantedValue) {
+                copy = lst;
+                sknfSearch(1, copy, node->left);
+                copy2 = copy;
+
+                sknfSearch(0, lst, node->left);
+                sknfSearch(1, lst, node->right);
+
+                sknfSearch(0, copy, node->right);
+                lst.insert(lst.end(), copy.begin(), copy.end());
+                copy.clear(); //возможно не работает
+
+                sknfSearch(1, copy2, node->right);
+                lst.insert(lst.end(), copy2.begin(), copy2.end());
+                return;
+            }
+            else {
+                sknfSearch(0, lst, node->left);
+                sknfSearch(0, lst, node->right);
+                return;
+            }
+        }; break;
+        case -4:   // XOR (^)
+        {
+            copy = lst;
+            if (wantedValue) {
+                sknfSearch(0, lst, node->left);
+                sknfSearch(1, lst, node->right);
+
+                sknfSearch(1, copy, node->left);
+                sknfSearch(0, copy, node->right);
+            }
+            else {
+                sknfSearch(0, lst, node->left);
+                sknfSearch(0, lst, node->right);
+
+                sknfSearch(1, copy, node->left);
+                sknfSearch(1, copy, node->right);
+
+            }
+            lst.insert(lst.end(), copy.begin(), copy.end());
             return;
+        }; break;
+        case -5:   // импликация
+        {
+            if (wantedValue) {
+                copy = lst;
+                sknfSearch(0, copy, node->left);
+                copy2 = copy;
+                sknfSearch(1, lst, node->left);
+                sknfSearch(1, lst, node->right);
+
+                sknfSearch(0, copy, node->right);
+                lst.insert(lst.end(), copy.begin(), copy.end());
+                copy.clear();
+                sknfSearch(1, copy2, node->right);
+                lst.insert(lst.end(), copy2.begin(), copy2.end());
+                return;
+            }
+            else {
+                sknfSearch(1, lst, node->left);
+                sknfSearch(0, lst, node->right);
+                return;
+            }
+        }; break;
+        case -6:   // эквиваленция
+        {
+            copy = lst;
+            if (wantedValue) {
+                sknfSearch(0, lst, node->left);
+                sknfSearch(0, lst, node->right);
+
+                sknfSearch(1, copy, node->left);
+                sknfSearch(1, copy, node->right);
+            }
+            else {
+                sknfSearch(0, lst, node->left);
+                sknfSearch(1, lst, node->right);
+
+                sknfSearch(1, copy, node->left);
+                sknfSearch(0, copy, node->right);
+            }
+            lst.insert(lst.end(), copy.begin(), copy.end());
+            return;
+        }break;
         }
     }
     else {    //если перед нами переменная
@@ -681,8 +768,8 @@ int main()
 {
     srand(time(NULL));
 
-    pair <vector<vector<string>>, string> answer = newGenerator(10, 8, 8, 1000);
-
+    //pair <vector<vector<string>>, string> answer = newGenerator(100, 396, 20000, 250000);
+    pair <vector<vector<string>>, string> answer = newGenerator(20, 17, 200, 2000);
     list<list<short>> resultSKNF;
     list<short> buf;
     resultSKNF.push_back(buf);
@@ -708,6 +795,7 @@ int main()
     cout << endl;
 
     cout << "SKNF search began." << endl;
+    //calculate = "((((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5))))*(!((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5))))*(((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+!((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5)))))";
     addnode(calculate, root);
     cout << "Tree ready." << endl;
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
