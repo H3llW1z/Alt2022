@@ -9,6 +9,9 @@
 #include <random>
 #include <iterator>
 #include <list>
+#include <stack>
+
+
 using namespace std;
 
 //структура, определяющая узел дерева выражения
@@ -136,79 +139,6 @@ int find_low_priority_operator(string expression) {
     return 0;
 }
 
-
-//возвращает список всех допустимых операндов в зависимости от оператора и желаемого значения
-vector<pair<int, int>> getSuitableOperands(int op, int wanted) {
-    vector<pair<int, int>> ans;
-    switch (op) {
-    case -2: {
-        if (wanted == 1) {
-            ans.push_back(make_pair(1, 1));
-        }
-        else {
-            ans.push_back(make_pair(0, 0));
-            ans.push_back(make_pair(1, 0));
-            ans.push_back(make_pair(0, 1));
-        }
-    }break;
-
-    case -3: {
-        if (wanted == 1) {
-            ans.push_back(make_pair(1, 0));
-            ans.push_back(make_pair(0, 1));
-            ans.push_back(make_pair(1, 1));
-        }
-        else {
-            ans.push_back(make_pair(0, 0));
-        }
-    }break;
-
-    case -4: {
-        if (wanted == 1) {
-            ans.push_back(make_pair(0, 1));
-            ans.push_back(make_pair(1, 0));
-        }
-        else {
-            ans.push_back(make_pair(1, 1));
-            ans.push_back(make_pair(0, 0));
-        }
-    }break;
-
-    case -1: {
-        if (wanted == 1) {
-            ans.push_back(make_pair(-1, 0));
-        }
-        else {
-            ans.push_back(make_pair(-1, 1));
-        }
-    }break;
-
-    case -6: {
-        if (wanted == 1) {
-            ans.push_back(make_pair(0, 0));
-            ans.push_back(make_pair(1, 1));
-        }
-        else {
-            ans.push_back(make_pair(0, 1));
-            ans.push_back(make_pair(1, 0));
-        }
-    }break;
-
-    case -5: {
-        if (wanted == 1) {
-            ans.push_back(make_pair(0, 1));
-            ans.push_back(make_pair(0, 0));
-            ans.push_back(make_pair(1, 1));
-        }
-        else {
-            ans.push_back(make_pair(1, 0));
-        }
-    }break;
-    }
-    return ans;
-}
-
-
 //добавляет узлы в дерево выражения
 void addnode(string expression, node* tree) {
     removeOuterBraces(expression);
@@ -253,136 +183,86 @@ void addnode(string expression, node* tree) {
 //a5, a31341, A134
 
 
-void sknfSearch(bool wantedValue, list<list<short>> &lst, node* node) {
-    list<list<short>> copy;
-    list<list<short>> copy2;
 
-    if (lst.size() == 0)
+//глобальный стек для сохранения данных, пришедших из родителя.
+stack <list<list<short>>> globalStack;
+
+//этот массив представляет собой дерево. Он нужен для определения подходящих операндов.
+//первая координата - числовое представление оператора минус 2. Вторая - желаемое значение. Так можно попасть в массив подходящих операндов.
+//здесь отсутствует отрицание, т.к. его обработка тривиальна.
+
+short operands[5][2][7] = {
+    { { 3, 1,0, 0,1, 0,0 }, { 1, 1,1, -1,-1, -1,-1 } },   // 2 умножение
+
+    { {1, 0,0, -1,-1, -1,-1 }, { 3, 0,1, 1,0, 1,1 } },   // 3 сложение
+
+    { {2, 0,0, 1,1, -1,-1 }, {2, 0,1, 1,0, -1,-1 } },   // 4 XOR
+
+    { {1, 1,0, -1,-1, -1,-1 }, {3, 1,1, 0,0, 0,1 } },   // 5 импликация
+
+    { {2, 0,0, 1,1, -1,-1 }, { 2, 0,1, 1,0, -1, -1} }    // эквиваленция
+};
+
+//глобальные переменные, которые использует функция поиска.
+//объявлены глобально, т.к. требуется лишь по одному экзмепляру каждой в любой момент времени.
+//----------------------------------------------------------------------
+
+short valueToPost = -1;
+
+list<list<short>>::iterator it1;   //итератор для перемещения по списку комбинаций
+list<short>::iterator it2;         //итератор для перемещения внутри одной комбинации
+
+bool needToPost;        //хранит информацию, нужно ли записать переменную в список
+
+//-----------------------------------------------------------------------
+void sknfSearch(bool wantedValue, list<list<short>> &lst, node* node) {
+    if (lst.size() == 0) {
         return;
+    }
 
     if (node->value < 0) {         //если попали в оператор
 
-        switch (node->value) {
-        case -1:   // отрицание
-        {
+        if (node->value == -1) {
             sknfSearch(!wantedValue, lst, node->right);
             return;
-        }; break;
-        case -2:   // умножение
-        {
-            if (wantedValue) {
-                sknfSearch(1, lst, node->left);
-                sknfSearch(1, lst, node->right);
-                return;
-            }
-            else {
-                copy = lst;
-                sknfSearch(0, copy, node->left);
-                copy2 = copy;
-
-                sknfSearch(1, lst, node->left);
-                sknfSearch(0, lst, node->right);
-
-                sknfSearch(0, copy, node->right);
-                lst.insert(lst.end(), copy.begin(), copy.end());
-                copy.clear(); //возможно не работает
-
-                sknfSearch(1, copy2, node->right);
-                lst.insert(lst.end(), copy2.begin(), copy2.end());
-                return;
-            }
-        }; break;
-        case -3:   // сложение 
-        {
-            if (wantedValue) {
-                copy = lst;
-                sknfSearch(1, copy, node->left);
-                copy2 = copy;
-
-                sknfSearch(0, lst, node->left);
-                sknfSearch(1, lst, node->right);
-
-                sknfSearch(0, copy, node->right);
-                lst.insert(lst.end(), copy.begin(), copy.end());
-                copy.clear(); //возможно не работает
-
-                sknfSearch(1, copy2, node->right);
-                lst.insert(lst.end(), copy2.begin(), copy2.end());
-                return;
-            }
-            else {
-                sknfSearch(0, lst, node->left);
-                sknfSearch(0, lst, node->right);
-                return;
-            }
-        }; break;
-        case -4:   // XOR (^)
-        {
-            copy = lst;
-            if (wantedValue) {
-                sknfSearch(0, lst, node->left);
-                sknfSearch(1, lst, node->right);
-
-                sknfSearch(1, copy, node->left);
-                sknfSearch(0, copy, node->right);
-            }
-            else {
-                sknfSearch(0, lst, node->left);
-                sknfSearch(0, lst, node->right);
-
-                sknfSearch(1, copy, node->left);
-                sknfSearch(1, copy, node->right);
-
-            }
-            lst.insert(lst.end(), copy.begin(), copy.end());
+        }
+        if (operands[abs(node->value) - 2][wantedValue][0] == 1) {   // если пара операндом одна
+            sknfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
+            sknfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
             return;
-        }; break;
-        case -5:   // импликация
-        {
-            if (wantedValue) {
-                copy = lst;
-                sknfSearch(0, copy, node->left);
-                copy2 = copy;
-                sknfSearch(1, lst, node->left);
-                sknfSearch(1, lst, node->right);
+        }
+        if (operands[abs(node->value) - 2][wantedValue][0] == 2) {   //если пар операндов две
+            globalStack.push(lst);
 
-                sknfSearch(0, copy, node->right);
-                lst.insert(lst.end(), copy.begin(), copy.end());
-                copy.clear();
-                sknfSearch(1, copy2, node->right);
-                lst.insert(lst.end(), copy2.begin(), copy2.end());
-                return;
-            }
-            else {
-                sknfSearch(1, lst, node->left);
-                sknfSearch(0, lst, node->right);
-                return;
-            }
-        }; break;
-        case -6:   // эквиваленция
-        {
-            copy = lst;
-            if (wantedValue) {
-                sknfSearch(0, lst, node->left);
-                sknfSearch(0, lst, node->right);
+            sknfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
+            sknfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
 
-                sknfSearch(1, copy, node->left);
-                sknfSearch(1, copy, node->right);
-            }
-            else {
-                sknfSearch(0, lst, node->left);
-                sknfSearch(1, lst, node->right);
+            sknfSearch(operands[abs(node->value) - 2][wantedValue][3], globalStack.top(), node->left);
+            sknfSearch(operands[abs(node->value) - 2][wantedValue][4], globalStack.top(), node->right);
 
-                sknfSearch(1, copy, node->left);
-                sknfSearch(0, copy, node->right);
-            }
-            lst.insert(lst.end(), copy.begin(), copy.end());
+            lst.insert(lst.end(), globalStack.top().begin(), globalStack.top().end());
+            globalStack.pop();
             return;
-        }break;
+        }
+        if (operands[abs(node->value) - 2][wantedValue][0] == 3) {  //если пар операндов 3
+            globalStack.push(lst);
+            sknfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
+            sknfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
+
+            sknfSearch(operands[abs(node->value) - 2][wantedValue][3], globalStack.top(), node->left);
+            globalStack.push(globalStack.top());
+            sknfSearch(operands[abs(node->value) - 2][wantedValue][4], globalStack.top(), node->right);
+            lst.insert(lst.end(), globalStack.top().begin(), globalStack.top().end());
+            globalStack.pop();
+
+            sknfSearch(operands[abs(node->value) - 2][wantedValue][6], globalStack.top(), node->right);
+            lst.insert(lst.end(), globalStack.top().begin(), globalStack.top().end());
+            globalStack.pop();
+            return;
         }
     }
     else {    //если перед нами переменная
-        int valueToPost = wantedValue == 1 ? -node->value : node->value;
+        valueToPost = wantedValue == 1 ? -node->value : node->value;
         //если список пустой изначально, просто добавим туда одну комбинацию из одной переменной
         if (lst.size() == 1 && (*lst.begin()).size() == 0) {
             (*lst.begin()).push_back(valueToPost);
@@ -390,18 +270,16 @@ void sknfSearch(bool wantedValue, list<list<short>> &lst, node* node) {
         }
         else {  //если же список комбинаций не пуст, надо пройти по нему и добавить переменную туда, где ее не хватает. При противоречиях вырезать комбинацию
 
-
-            list<list<short>>::iterator it1;   //итератор для перемещения по списку комбинаций
-            list<short>::iterator it2;         //итератор для перемещения внутри одной комбинации
-            bool needToPost;        //храни информацию, нужно ли записать переменную в список
             it1 = lst.begin();  //внешний итератор поместим в начало списка комбинаций
+
             while (it1 != lst.end()) {
+
                 needToPost=true;
                 it2 = (* it1).begin();
 
                 while (it2 != (*it1).end()) {
-                    // если нашли переменную с номером больше текущей, вставляем сюда.
-                    if (node->value < abs((*it2))) {
+                    
+                    if (node->value < abs((*it2))) {     // если нашли переменную с номером больше текущей, вставляем сюда.
                         (*it1).insert(it2, valueToPost);
                         needToPost = false;
                         ++it1;
@@ -767,9 +645,8 @@ bool compareAnswers(list<list<short>> actualAns, vector<vector<string>> wantedAn
 int main()
 {
     srand(time(NULL));
-
-    //pair <vector<vector<string>>, string> answer = newGenerator(100, 396, 20000, 250000);
-    pair <vector<vector<string>>, string> answer = newGenerator(20, 17, 200, 2000);
+    pair <vector<vector<string>>, string> answer = newGenerator(25, 100, 1500, 20000);
+    //pair <vector<vector<string>>, string> answer = newGenerator(20, 17, 200, 2000);
     list<list<short>> resultSKNF;
     list<short> buf;
     resultSKNF.push_back(buf);
