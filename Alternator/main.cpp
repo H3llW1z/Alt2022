@@ -15,7 +15,7 @@
 
 using namespace std;
 
-#define MAX_VARS 30
+#define MAX_VARS 10
 
 
 //структура, определяющая узел дерева выражения
@@ -186,17 +186,9 @@ void addnode(string expression, node* tree) {
 //a5, a31341, A134
 
 
-
-//глобальный стек для сохранения данных, пришедших из родителя.
-
 //этот массив представляет собой дерево. Он нужен для определения подходящих операндов.
 //первая координата - числовое представление оператора минус 2. Вторая - желаемое значение. Так можно попасть в массив подходящих операндов.
 //здесь отсутствует отрицание, т.к. его обработка тривиальна.
-
-struct sknfMember {
-    bitset <MAX_VARS> vars;
-    bitset <MAX_VARS> signs;
-};
 
 short operands[5][2][7] = {
     { { 3, 1,0, 0,1, 0,0 }, { 1, 1,1, -1,-1, -1,-1 } },   // 2 умножение
@@ -210,22 +202,21 @@ short operands[5][2][7] = {
     { {2, 0,0, 1,1, -1,-1 }, { 2, 0,1, 1,0, -1, -1} }    // эквиваленция
 };
 
+struct sknfMember {
+    bitset <MAX_VARS> vars;
+    bitset <MAX_VARS> signs;
+};
+
 //глобальные переменные, которые использует функция поиска.
 //объявлены глобально, т.к. требуется лишь по одному экзмепляру каждой в любой момент времени.
 //----------------------------------------------------------------------
 
-short valueToPost = -1;
+list<sknfMember>::iterator it1;         //итератор для перемещения по списку комбинаций
 
-list<sknfMember>::iterator it1;   //итератор для перемещения по списку комбинаций
-list<short>::iterator it2;         //итератор для перемещения внутри одной комбинации
-
-bool needToPost;        //хранит информацию, нужно ли записать переменную в список
+stack <list<sknfMember>> globalStack;   //глобальный стек для сохранения данных, пришедших из родителя.
 
 //-----------------------------------------------------------------------
 
-
-
-stack <list<sknfMember>> globalStack;
 
 void sknfSearch(bool wantedValue, list<sknfMember> &lst, node* node) {
     if (lst.size() == 0) {
@@ -239,45 +230,72 @@ void sknfSearch(bool wantedValue, list<sknfMember> &lst, node* node) {
             return;
         }
         if (operands[abs(node->value) - 2][wantedValue][0] == 1) {   // если пара операндов одна
-            sknfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
-            sknfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
+            if (node->right->value > 0) {
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
+            }
+            else {
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
+            }
             return;
         }
         if (operands[abs(node->value) - 2][wantedValue][0] == 2) {   //если пар операндов две
             globalStack.push(lst);
+            if (node->right->value > 0) {
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
 
-            sknfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
-            sknfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][4], globalStack.top(), node->right);
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][3], globalStack.top(), node->left);
+            }
+            else {
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
 
-            sknfSearch(operands[abs(node->value) - 2][wantedValue][3], globalStack.top(), node->left);
-            sknfSearch(operands[abs(node->value) - 2][wantedValue][4], globalStack.top(), node->right);
-
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][3], globalStack.top(), node->left);
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][4], globalStack.top(), node->right);
+            }
             lst.insert(lst.end(), globalStack.top().begin(), globalStack.top().end());
             globalStack.pop();
             return;
         }
         if (operands[abs(node->value) - 2][wantedValue][0] == 3) {  //если пар операндов 3
             globalStack.push(lst);
-            sknfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
-            sknfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
 
-            sknfSearch(operands[abs(node->value) - 2][wantedValue][3], globalStack.top(), node->left);
-            globalStack.push(globalStack.top());
-            sknfSearch(operands[abs(node->value) - 2][wantedValue][4], globalStack.top(), node->right);
-            lst.insert(lst.end(), globalStack.top().begin(), globalStack.top().end());
-            globalStack.pop();
+            if (node->right->value > 0) {
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][4], lst, node->right);
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][3], lst, node->left);
 
-            sknfSearch(operands[abs(node->value) - 2][wantedValue][6], globalStack.top(), node->right);
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][2], globalStack.top(), node->right);
+                globalStack.push(globalStack.top());
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][1], globalStack.top(), node->left);
+                lst.insert(lst.end(), globalStack.top().begin(), globalStack.top().end());
+                globalStack.pop();
+
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][5], globalStack.top(), node->left);
+            }
+            else {
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
+
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][3], globalStack.top(), node->left);
+                globalStack.push(globalStack.top());
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][4], globalStack.top(), node->right);
+                lst.insert(lst.end(), globalStack.top().begin(), globalStack.top().end());
+                globalStack.pop();
+
+                sknfSearch(operands[abs(node->value) - 2][wantedValue][6], globalStack.top(), node->right);
+            }
             lst.insert(lst.end(), globalStack.top().begin(), globalStack.top().end());
             globalStack.pop();
             return;
         }
     }
     else {    //если перед нами переменная
-        valueToPost = wantedValue == 1 ? -node->value : node->value;
         //если список пустой изначально, просто добавим туда одну комбинацию из одной переменной
-        if (lst.size() == 1 && (*lst.begin()).signs.test(MAX_VARS - 1) && !((*lst.begin()).vars.test(MAX_VARS - 1))) {
-            (*lst.begin()).signs.set(MAX_VARS - 1, 0);
+        if (lst.size() == 1 && (*lst.begin()).signs.test(0) && !((*lst.begin()).vars.test(0))) {
+            (*lst.begin()).signs.set(0, 0);
             (*lst.begin()).vars.set(node->value - 1, 1);
             (*lst.begin()).signs.set(node->value - 1, wantedValue);   //если хотим единицу - нужно отрицание. 1 - значит нужно отрицание
             return;
@@ -640,11 +658,11 @@ bool compareAnswers(list<list<short>> actualAns, vector<vector<string>> wantedAn
 int main()
 {
     srand(time(NULL));
-    pair <vector<vector<string>>, string> answer = newGenerator(23, 30, 666, 5000);
+    pair <vector<vector<string>>, string> answer = newGenerator(10, 10, 42, 1200);
     //pair <vector<vector<string>>, string> answer = newGenerator(20, 17, 200, 2000);
     list<sknfMember> resultSKNF;
     sknfMember buf;
-    buf.signs.set(MAX_VARS - 1, 1);
+    buf.signs.set(0, 1);
     resultSKNF.push_back(buf);
     node* root = new node;
     string calculate;
@@ -669,6 +687,7 @@ int main()
 
     cout << "SKNF search began." << endl;
     //calculate = "((((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5))))*(!((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5))))*(((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+!((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5)))))";
+    calculate = "(!a10+(a8^(a5^a4^a5*a4)^a8*(a5^a4^a5*a4))+(a2+(!(((a6+a2*a10)^!(a6+a2*a10))>!(a6*!a2*a2))))+a6+a9+a1+(a3^a7^a3*a7))*(((a8+a5+a6+a4+a9+(a10^a3^a10*a3)+a7+(!a2^(a1+(a5*a2*(a2*((a5^(a2+a2^a7))^a2*a7)>!a2)*a2*a2*!a2))^!a2*(a1+(a5*a2*(a2*((a5^(a2+a2^a7))^a2*a7)>!a2)*a2*a2*!a2))))+(!a2+a9+!a8+(!a6*!(!(((a5+a9*a2)^!(a5+a9*a2))>!(a5*!a9*a9))))+!a4+!a3+!a7+(!a10^(!a5^!a1^!a5*!a1)^!a10*(!a5^!a1^!a5*!a1))))*(!(a8+a5+a6+a4+a9+(a10^a3^a10*a3)+a7+(!a2^(a1+(a5*a2*(a2*((a5^(a2+a2^a7))^a2*a7)>!a2)*a2*a2*!a2))^!a2*(a1+(a5*a2*(a2*((a5^(a2+a2^a7))^a2*a7)>!a2)*a2*a2*!a2))))+(!a2+a9+!a8+(!a6*!(!(((a5+a9*a2)^!(a5+a9*a2))>!(a5*!a9*a9))))+!a4+!a3+!a7+(!a10^(!a5^!a1^!a5*!a1)^!a10*(!a5^!a1^!a5*!a1))))*((a8+a5+a6+a4+a9+(a10^a3^a10*a3)+a7+(!a2^(a1+(a5*a2*(a2*((a5^(a2+a2^a7))^a2*a7)>!a2)*a2*a2*!a2))^!a2*(a1+(a5*a2*(a2*((a5^(a2+a2^a7))^a2*a7)>!a2)*a2*a2*!a2))))+!(!a2+a9+!a8+(!a6*!(!(((a5+a9*a2)^!(a5+a9*a2))>!(a5*!a9*a9))))+!a4+!a3+!a7+(!a10^(!a5^!a1^!a5*!a1)^!a10*(!a5^!a1^!a5*!a1)))))*((!a4+(a2*a7*(a7*((a2^(a5+a7^a1))^a5*a1)>!a7)*a5*a7*!a5))+!a2+!a8+a7+!a9+!a6+!a10+(!a5^(!a3^a1^!a3*a1)^!a5*(!a3^a1^!a3*a1)))*((!a8^a3^!a8*a3)+a9+(!a7^a4^!a7*a4)+a10+!a5+(!a1*!(!(a1^((!a6+a2)*!a6+a1)>a2)*a2))+(!a2^a6^!a2*a6))*((!a2^a3^!a2*a3)+!a7+!a9+(!a8+(a1*a8*(a8*((a1^(a1+a8^a1))^a1*a1)>!a8)*a1*a8*!a1))+!a10+!a6+((!a4^a1^!a4*a1)^a5^(!a4^a1^!a4*a1)*a5))*(a10+(a4+(!(((a7+a2*a9)^!(a7+a2*a9))>!(a7*!a2*a2))))+a9+!a1+a2+(!a6^a5^!a6*a5)+(a3^(a8^a7^a8*a7)^a3*(a8^a7^a8*a7)))*(a1+a6+(a2^a4^a2*a4)+!a10+a7+a5+a9+((a3+(a4*a9*(a9*((a4^(a2+a9^a3))^a2*a3)>!a9)*a2*a9*!a2))^a8^(a3+(a4*a9*(a9*((a4^(a2+a9^a3))^a2*a3)>!a9)*a2*a9*!a2))*a8))*((((a6^!a9^a6*!a9)+a5+(a3+(a9*a5*(a5*((a9^(a7+a5^a2))^a7*a2)>!a5)*a7*a5*!a7))+(!a4^!a2^!a4*!a2)+a7+a10+(a1^!a8^a1*!a8))+(a9+!a7+a6+!a1+a3+a5+a2+a10+((!a8*!(a7*a10*(a10*((a7^(a5+a10^a7))^a5*a7)>!a10)*a5*a10*!a5))^a4^(!a8*!(a7*a10*(a10*((a7^(a5+a10^a7))^a5*a7)>!a10)*a5*a10*!a5))*a4)))*(!((a6^!a9^a6*!a9)+a5+(a3+(a9*a5*(a5*((a9^(a7+a5^a2))^a7*a2)>!a5)*a7*a5*!a7))+(!a4^!a2^!a4*!a2)+a7+a10+(a1^!a8^a1*!a8))+(a9+!a7+a6+!a1+a3+a5+a2+a10+((!a8*!(a7*a10*(a10*((a7^(a5+a10^a7))^a5*a7)>!a10)*a5*a10*!a5))^a4^(!a8*!(a7*a10*(a10*((a7^(a5+a10^a7))^a5*a7)>!a10)*a5*a10*!a5))*a4)))*(((a6^!a9^a6*!a9)+a5+(a3+(a9*a5*(a5*((a9^(a7+a5^a2))^a7*a2)>!a5)*a7*a5*!a7))+(!a4^!a2^!a4*!a2)+a7+a10+(a1^!a8^a1*!a8))+!(a9+!a7+a6+!a1+a3+a5+a2+a10+((!a8*!(a7*a10*(a10*((a7^(a5+a10^a7))^a5*a7)>!a10)*a5*a10*!a5))^a4^(!a8*!(a7*a10*(a10*((a7^(a5+a10^a7))^a5*a7)>!a10)*a5*a10*!a5))*a4))))";
     addnode(calculate, root);
     cout << "Tree ready." << endl;
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
