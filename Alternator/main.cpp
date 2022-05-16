@@ -15,8 +15,7 @@
 
 using namespace std;
 
-#define MAX_VARS 10
-
+#define MAX_VARS 15
 
 //структура, определяющая узел дерева выражения
 struct node
@@ -24,8 +23,23 @@ struct node
     struct node* left = nullptr;
     struct node* right = nullptr;
     short value = 0;
+    short leftWeight = 0;
+    short rightWeight = 0;
 };
 
+int distToLeaf(node *node) {
+    if (node->value > 0)
+        return 0;
+    if (node->value == -1) {
+        node->leftWeight = 999; // отрицание имеет отдельную обработку. Веса на отрицании никогда не проверяются
+        node->rightWeight = distToLeaf(node->right) + 1;
+        return node->rightWeight;
+    }
+    node->leftWeight = distToLeaf(node->left) + 1;
+    node->rightWeight = distToLeaf(node->right) + 1;
+    return min(node->leftWeight, node->rightWeight);
+    
+}
 
 //Проверяет правильность скобочной конструкции
 bool checkBraces(string str) {
@@ -44,7 +58,6 @@ bool checkBraces(string str) {
         return true;
     else return false;
 }
-
 
 //Удаляет внешние парные скобки, прим. ((a+b)) -> a+b
 void removeOuterBraces(string &str) {
@@ -73,14 +86,15 @@ struct operators
     int index;
 };
 
-
 //массив всех доступных операторов, расставленных в порядке возрастания приоритета
-char priorityArray[6] = { '=', '>', '^', '+', '*', '!'};
-//числ. обоз-я операторов -6   -5   -4   -3   -2   -1
+char priorityArray[8] = { 'v', '|', '=', '>', '^', '+', '*', '!'};
+//числ. обоз-я операторов -8   -7   -6   -5   -4   -3   -2   -1
 
-
+//возвращает номер оператора по символу
 int getOperatorsIntForm(char op) {
     switch (op) {
+    case 'v': return -8; break;
+    case '|': return -7; break;
     case '=': return -6; break;
     case '>': return -5; break;
     case '^': return -4; break;
@@ -91,17 +105,20 @@ int getOperatorsIntForm(char op) {
     }
 }
 
+bool isOperator(char ch) {
 
-  //ищет наименее приоритетный оператор и возвращает его позицию в строке
+    for (int i = 0; i < 8; i++) {
+        if (ch == priorityArray[i])
+            return true;
+    }
+    return false;
+}
+
+//ищет наименее приоритетный оператор и возвращает его позицию в строке
 int find_low_priority_operator(string expression) {
     bool isThereOperator = false;
     for (int i = 0; i < expression.size(); i++) {
-        for (int j = 0; j < 6; j++) {
-            if (expression[i] == priorityArray[j]) {
-                isThereOperator = true;
-                break;
-            }
-        }
+        isThereOperator = isOperator(expression[i]);
         if (isThereOperator) {
             break;
         }
@@ -125,14 +142,14 @@ int find_low_priority_operator(string expression) {
         if (expression[i] == '(') {
             openBrace += 1;
         }
-        if (closeBrace == openBrace && (expression[i] == '!' || expression[i] == '>' || expression[i] == '^' || expression[i] == '=' || expression[i] == '+' || expression[i] == '*')) {
+        if (closeBrace == openBrace && isOperator(expression[i])) {
             v.push_back(operators(i, expression[i]));
 
             closeBrace = 0;
             openBrace = 0;
         }
     }
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 8; ++i) {
         for (int j = 0; j <= v.size() - 1; j++) {
             if (v[j].value == priorityArray[i]) {
                 return v[j].index;
@@ -156,7 +173,7 @@ void addnode(string expression, node* tree) {
     }
     tree->value = getOperatorsIntForm(expression[lpIndex]);
    
-    if (tree->value == -1) { // если !
+    if (tree->value == -1) {        //если попали в отрицание
         tree->right = new node;
         addnode(expression.substr(lpIndex + 1), tree->right);
     }
@@ -190,16 +207,20 @@ void addnode(string expression, node* tree) {
 //первая координата - числовое представление оператора минус 2. Вторая - желаемое значение. Так можно попасть в массив подходящих операндов.
 //здесь отсутствует отрицание, т.к. его обработка тривиальна.
 
-short operands[5][2][7] = {
+short operands[7][2][7] = {
     { { 3, 1,0, 0,1, 0,0 }, { 1, 1,1, -1,-1, -1,-1 } },   // 2 умножение
 
-    { {1, 0,0, -1,-1, -1,-1 }, { 3, 0,1, 1,0, 1,1 } },   // 3 сложение
+    { { 1, 0,0, -1,-1, -1,-1 }, { 3, 0,1, 1,0, 1,1 } },   // 3 сложение
 
-    { {2, 0,0, 1,1, -1,-1 }, {2, 0,1, 1,0, -1,-1 } },   // 4 XOR
+    { { 2, 0,0, 1,1, -1,-1 }, { 2, 0,1, 1,0, -1,-1 } },   // 4 XOR
 
-    { {1, 1,0, -1,-1, -1,-1 }, {3, 1,1, 0,0, 0,1 } },   // 5 импликация
+    { { 1, 1,0, -1,-1, -1,-1 }, { 3, 1,1, 0,0, 0,1 } },   // 5 импликация
 
-    { {2, 0,0, 1,1, -1,-1 }, { 2, 0,1, 1,0, -1, -1} }    // эквиваленция
+    { { 2, 0,0, 1,1, -1,-1 }, { 2, 0,1, 1,0, -1,-1 } },   // 6 эквиваленция
+
+    { { 1, 1,1, -1,-1, -1,-1 }, { 3, 1,0, 0,1, 0,0 } },   // 7 штрих шеффера
+
+    { { 3, 0,1, 1,0, 1,1 }, { 1, 0,0, -1,-1, -1,-1 } },   // 8 стрелка пирса
 };
 
 struct sknfMember {
@@ -211,12 +232,11 @@ struct sknfMember {
 //объявлены глобально, т.к. требуется лишь по одному экзмепляру каждой в любой момент времени.
 //----------------------------------------------------------------------
 
-list<sknfMember>::iterator it1;         //итератор для перемещения по списку комбинаций
+list<sknfMember>::iterator it1;         //итератор для перемещения по списку комбинаций.
 
 stack <list<sknfMember>> globalStack;   //глобальный стек для сохранения данных, пришедших из родителя.
 
 //-----------------------------------------------------------------------
-
 
 void sknfSearch(bool wantedValue, list<sknfMember> &lst, node* node) {
     if (lst.size() == 0) {
@@ -230,7 +250,7 @@ void sknfSearch(bool wantedValue, list<sknfMember> &lst, node* node) {
             return;
         }
         if (operands[abs(node->value) - 2][wantedValue][0] == 1) {   // если пара операндов одна
-            if (node->right->value > 0) {
+            if (node->rightWeight < node->leftWeight) {
                 sknfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
                 sknfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
             }
@@ -242,7 +262,7 @@ void sknfSearch(bool wantedValue, list<sknfMember> &lst, node* node) {
         }
         if (operands[abs(node->value) - 2][wantedValue][0] == 2) {   //если пар операндов две
             globalStack.push(lst);
-            if (node->right->value > 0) {
+            if (node->rightWeight < node->leftWeight) {
                 sknfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
                 sknfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
 
@@ -263,7 +283,7 @@ void sknfSearch(bool wantedValue, list<sknfMember> &lst, node* node) {
         if (operands[abs(node->value) - 2][wantedValue][0] == 3) {  //если пар операндов 3
             globalStack.push(lst);
 
-            if (node->right->value > 0) {
+            if (node->rightWeight < node->leftWeight) {
                 sknfSearch(operands[abs(node->value) - 2][wantedValue][4], lst, node->right);
                 sknfSearch(operands[abs(node->value) - 2][wantedValue][3], lst, node->left);
 
@@ -325,16 +345,6 @@ void sknfSearch(bool wantedValue, list<sknfMember> &lst, node* node) {
     }
 }
 
-//размер массива операторов указан как 6, может быть увеличен!!!
-bool isOperator(char ch) {
-
-    for (int i = 0; i < 6; i++) {
-        if (ch == priorityArray[i])
-            return true;
-    }
-    return false;
-}
-
 int countVarsAndOperators(string str) {
     int answer = 0;
     for (int i = 0; i < str.size(); i++) {
@@ -351,13 +361,13 @@ string complicateConstant(int numOfVars, int numOfVarsTotal, bool constFlag) {
 
     switch (numOfVars) {
     case 3: {
-        string variantsList[2] = { "(!(1^((!2+3)*!2+1)>3)*3)", "(!(((3+2*1)^!(3+2*1))>!(3*!2*2)))" };
-
+        string variantsList[4] = { "(!(1^((!2+3)*!2+1)>3)*3)", "(!(((3+2*1)^!(3+2*1))>!(3*!2*2)))", "((((2+!1)*!3)v3)*!1)", "(!3*!(2+!(1+!3|1)|!(3^2))*!1)"};
+        //string variantsList[2] = { "(!(1^((!2+3)*!2+1)>3)*3)", "(!(((3+2*1)^!(3+2*1))>!(3*!2*2)))" };
         string var1 = "a" + to_string(rand() % numOfVarsTotal + 1);
         string var2 = "a" + to_string(rand() % numOfVarsTotal + 1);
         string var3 = "a" + to_string(rand() % numOfVarsTotal + 1);
 
-        int variant = rand() % 2;
+        int variant = rand() % 4;
 
         string buf = variantsList[variant];
         for (int i = 0; i < buf.size(); i++) {
@@ -658,15 +668,14 @@ bool compareAnswers(list<list<short>> actualAns, vector<vector<string>> wantedAn
 int main()
 {
     srand(time(NULL));
-    pair <vector<vector<string>>, string> answer = newGenerator(10, 10, 42, 1200);
-    //pair <vector<vector<string>>, string> answer = newGenerator(20, 17, 200, 2000);
+    pair <vector<vector<string>>, string> answer = newGenerator(5, 10, 23, 1800);
     list<sknfMember> resultSKNF;
     sknfMember buf;
     buf.signs.set(0, 1);
     resultSKNF.push_back(buf);
     node* root = new node;
     string calculate;
-
+    
     calculate = answer.second;
     cout << "Formula:\n";
     cout << calculate << endl;
@@ -687,8 +696,10 @@ int main()
 
     cout << "SKNF search began." << endl;
     //calculate = "((((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5))))*(!((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5))))*(((a2^a4^a2*a4)+a5+(a1+(a4*a8*(a8*((a4^(a5+a8^a8))^a5*a8)>!a8)*a5*a8*!a5))+a7+a8+!a6+!a3)+!((!a3^a2^!a3*a2)+((a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))^(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7))))^(a6*!(!(a6^((!a3+a7)*!a3+a6)>a7)*a7))*(a7*!(!(((a1+a7*a3)^!(a1+a7*a3))>!(a1*!a7*a7)))))+!a8+(a5+(!(((a3+a5*a1)^!(a3+a5*a1))>!(a3*!a5*a5))))+a4+(a1*!(!(a6^((!a5+a5)*!a5+a6)>a5)*a5)))))";
-    calculate = "(!a10+(a8^(a5^a4^a5*a4)^a8*(a5^a4^a5*a4))+(a2+(!(((a6+a2*a10)^!(a6+a2*a10))>!(a6*!a2*a2))))+a6+a9+a1+(a3^a7^a3*a7))*(((a8+a5+a6+a4+a9+(a10^a3^a10*a3)+a7+(!a2^(a1+(a5*a2*(a2*((a5^(a2+a2^a7))^a2*a7)>!a2)*a2*a2*!a2))^!a2*(a1+(a5*a2*(a2*((a5^(a2+a2^a7))^a2*a7)>!a2)*a2*a2*!a2))))+(!a2+a9+!a8+(!a6*!(!(((a5+a9*a2)^!(a5+a9*a2))>!(a5*!a9*a9))))+!a4+!a3+!a7+(!a10^(!a5^!a1^!a5*!a1)^!a10*(!a5^!a1^!a5*!a1))))*(!(a8+a5+a6+a4+a9+(a10^a3^a10*a3)+a7+(!a2^(a1+(a5*a2*(a2*((a5^(a2+a2^a7))^a2*a7)>!a2)*a2*a2*!a2))^!a2*(a1+(a5*a2*(a2*((a5^(a2+a2^a7))^a2*a7)>!a2)*a2*a2*!a2))))+(!a2+a9+!a8+(!a6*!(!(((a5+a9*a2)^!(a5+a9*a2))>!(a5*!a9*a9))))+!a4+!a3+!a7+(!a10^(!a5^!a1^!a5*!a1)^!a10*(!a5^!a1^!a5*!a1))))*((a8+a5+a6+a4+a9+(a10^a3^a10*a3)+a7+(!a2^(a1+(a5*a2*(a2*((a5^(a2+a2^a7))^a2*a7)>!a2)*a2*a2*!a2))^!a2*(a1+(a5*a2*(a2*((a5^(a2+a2^a7))^a2*a7)>!a2)*a2*a2*!a2))))+!(!a2+a9+!a8+(!a6*!(!(((a5+a9*a2)^!(a5+a9*a2))>!(a5*!a9*a9))))+!a4+!a3+!a7+(!a10^(!a5^!a1^!a5*!a1)^!a10*(!a5^!a1^!a5*!a1)))))*((!a4+(a2*a7*(a7*((a2^(a5+a7^a1))^a5*a1)>!a7)*a5*a7*!a5))+!a2+!a8+a7+!a9+!a6+!a10+(!a5^(!a3^a1^!a3*a1)^!a5*(!a3^a1^!a3*a1)))*((!a8^a3^!a8*a3)+a9+(!a7^a4^!a7*a4)+a10+!a5+(!a1*!(!(a1^((!a6+a2)*!a6+a1)>a2)*a2))+(!a2^a6^!a2*a6))*((!a2^a3^!a2*a3)+!a7+!a9+(!a8+(a1*a8*(a8*((a1^(a1+a8^a1))^a1*a1)>!a8)*a1*a8*!a1))+!a10+!a6+((!a4^a1^!a4*a1)^a5^(!a4^a1^!a4*a1)*a5))*(a10+(a4+(!(((a7+a2*a9)^!(a7+a2*a9))>!(a7*!a2*a2))))+a9+!a1+a2+(!a6^a5^!a6*a5)+(a3^(a8^a7^a8*a7)^a3*(a8^a7^a8*a7)))*(a1+a6+(a2^a4^a2*a4)+!a10+a7+a5+a9+((a3+(a4*a9*(a9*((a4^(a2+a9^a3))^a2*a3)>!a9)*a2*a9*!a2))^a8^(a3+(a4*a9*(a9*((a4^(a2+a9^a3))^a2*a3)>!a9)*a2*a9*!a2))*a8))*((((a6^!a9^a6*!a9)+a5+(a3+(a9*a5*(a5*((a9^(a7+a5^a2))^a7*a2)>!a5)*a7*a5*!a7))+(!a4^!a2^!a4*!a2)+a7+a10+(a1^!a8^a1*!a8))+(a9+!a7+a6+!a1+a3+a5+a2+a10+((!a8*!(a7*a10*(a10*((a7^(a5+a10^a7))^a5*a7)>!a10)*a5*a10*!a5))^a4^(!a8*!(a7*a10*(a10*((a7^(a5+a10^a7))^a5*a7)>!a10)*a5*a10*!a5))*a4)))*(!((a6^!a9^a6*!a9)+a5+(a3+(a9*a5*(a5*((a9^(a7+a5^a2))^a7*a2)>!a5)*a7*a5*!a7))+(!a4^!a2^!a4*!a2)+a7+a10+(a1^!a8^a1*!a8))+(a9+!a7+a6+!a1+a3+a5+a2+a10+((!a8*!(a7*a10*(a10*((a7^(a5+a10^a7))^a5*a7)>!a10)*a5*a10*!a5))^a4^(!a8*!(a7*a10*(a10*((a7^(a5+a10^a7))^a5*a7)>!a10)*a5*a10*!a5))*a4)))*(((a6^!a9^a6*!a9)+a5+(a3+(a9*a5*(a5*((a9^(a7+a5^a2))^a7*a2)>!a5)*a7*a5*!a7))+(!a4^!a2^!a4*!a2)+a7+a10+(a1^!a8^a1*!a8))+!(a9+!a7+a6+!a1+a3+a5+a2+a10+((!a8*!(a7*a10*(a10*((a7^(a5+a10^a7))^a5*a7)>!a10)*a5*a10*!a5))^a4^(!a8*!(a7*a10*(a10*((a7^(a5+a10^a7))^a5*a7)>!a10)*a5*a10*!a5))*a4))))";
+    //calculate = "(!a1+!a2+!a11+!a10+a9+(!a3^!a12^!a3*!a12)+!a8+a13+!a15+(a5+(a5*a4*(a4*((a5^(a7+a4^a3))^a7*a3)>!a4)*a7*a4*!a7))+a14+((!a6^!a7^!a6*!a7)^a4^(!a6^!a7^!a6*!a7)*a4))*(!a1+!a13+!a6+!a4+a9+!a12+!a14+a10+a8+!a11+!a7+a5+!a2+((a3*!(!(((a10+a6*a13)^!(a10+a6*a13))>!(a10*!a6*a6))))^!a15^(a3*!(!(((a10+a6*a13)^!(a10+a6*a13))>!(a10*!a6*a6))))*!a15))*(((a11+!a13+(!a14+(!(a9^((!a7+a1)*!a7+a9)>a1)*a1))+!a5+a8+!a2+!a15+!a1+(!a12^a6^!a12*a6)+(!a9^a10^!a9*a10)+!a3+(a7^!a4^a7*!a4))+(a4+a15+a9+a8+a14+a3+a6+!a11+a10+a1+a2+a7+a13+((a12*!(!(((a3+a3*a15)^!(a3+a3*a15))>!(a3*!a3*a3))))^a5^(a12*!(!(((a3+a3*a15)^!(a3+a3*a15))>!(a3*!a3*a3))))*a5)))*(!(a11+!a13+(!a14+(!(a9^((!a7+a1)*!a7+a9)>a1)*a1))+!a5+a8+!a2+!a15+!a1+(!a12^a6^!a12*a6)+(!a9^a10^!a9*a10)+!a3+(a7^!a4^a7*!a4))+(a4+a15+a9+a8+a14+a3+a6+!a11+a10+a1+a2+a7+a13+((a12*!(!(((a3+a3*a15)^!(a3+a3*a15))>!(a3*!a3*a3))))^a5^(a12*!(!(((a3+a3*a15)^!(a3+a3*a15))>!(a3*!a3*a3))))*a5)))*((a11+!a13+(!a14+(!(a9^((!a7+a1)*!a7+a9)>a1)*a1))+!a5+a8+!a2+!a15+!a1+(!a12^a6^!a12*a6)+(!a9^a10^!a9*a10)+!a3+(a7^!a4^a7*!a4))+!(a4+a15+a9+a8+a14+a3+a6+!a11+a10+a1+a2+a7+a13+((a12*!(!(((a3+a3*a15)^!(a3+a3*a15))>!(a3*!a3*a3))))^a5^(a12*!(!(((a3+a3*a15)^!(a3+a3*a15))>!(a3*!a3*a3))))*a5))))*(a12+a3+a8+a9+!a11+!a7+!a14+a15+!a13+a10+a2+a6+!a5+(!a4^(a1*!(a14*a13*(a13*((a14^(a8+a13^a7))^a8*a7)>!a13)*a8*a13*!a8))^!a4*(a1*!(a14*a13*(a13*((a14^(a8+a13^a7))^a8*a7)>!a13)*a8*a13*!a8))))*(a9+a12+(a15+(!(((a10+a13*a10)^!(a10+a13*a10))>!(a10*!a13*a13))))+a8+a14+a4+a5+a10+!a11+a2+a3+a13+((!a1^a6^!a1*a6)^a7^(!a1^a6^!a1*a6)*a7))*(!a12+!a15+!a10+a5+a13+!a6+a4+!a14+a7+!a9+a8+!a11+a2+((a3*!(!(((a11+a9*a7)^!(a11+a9*a7))>!(a11*!a9*a9))))^!a1^(a3*!(!(((a11+a9*a7)^!(a11+a9*a7))>!(a11*!a9*a9))))*!a1))*((a12^a8^a12*a8)+a13+!a5+a11+!a2+!a15+(!a6+(!(((a2+a8*a7)^!(a2+a8*a7))>!(a2*!a8*a8))))+!a3+a14+!a4+a1+(!a7^(a9^!a10^a9*!a10)^!a7*(a9^!a10^a9*!a10)))*(a10+(a3^a5^a3*a5)+a13+!a12+(a7^!a9^a7*!a9)+a11+a2+a14+a4+a15+a8+((a1+(a5*a7*(a7*((a5^(a10+a7^a13))^a10*a13)>!a7)*a10*a7*!a10))^a6^(a1+(a5*a7*(a7*((a5^(a10+a7^a13))^a10*a13)>!a7)*a10*a7*!a10))*a6))*(!a9+a3+(!a2+(!(a8^((!a15+a1)*!a15+a8)>a1)*a1))+!a7+!a4+a14+a1+a11+a5+!a12+!a10+a8+(a6^(a13^a15^a13*a15)^a6*(a13^a15^a13*a15)))*(!a8+!a9+!a7+!a11+a3+!a15+!a13+(!a1^!a12^!a1*!a12)+!a2+(!a10^a6^!a10*a6)+!a5+((a14*!(a6*a13*(a13*((a6^(a12+a13^a3))^a12*a3)>!a13)*a12*a13*!a12))^!a4^(a14*!(a6*a13*(a13*((a6^(a12+a13^a3))^a12*a3)>!a13)*a12*a13*!a12))*!a4))*(!a1+(a7*!(a15*a2*(a2*((a15^(a5+a2^a1))^a5*a1)>!a2)*a5*a2*!a5))+!a15+a12+!a4+!a14+(a5^!a13^a5*!a13)+!a3+a10+(!a2^a6^!a2*a6)+!a11+(a9^!a8^a9*!a8))*(a11+a6+a12+(a13*!(a9*a15*(a15*((a9^(a9+a15^a13))^a9*a13)>!a15)*a9*a15*!a9))+a9+a7+!a15+a5+a3+a14+(!a8^!a4^!a8*!a4)+((a2^a10^a2*a10)^a1^(a2^a10^a2*a10)*a1))*(((!a7+a3+!a8+!a4+!a14+!a2+!a10+!a13+a12+(!a9+(!(((a6+a1*a10)^!(a6+a1*a10))>!(a6*!a1*a1))))+a15+a1+(!a11^(a6^!a5^a6*!a5)^!a11*(a6^!a5^a6*!a5)))+((!a3^a13^!a3*a13)+!a10+a11+!a5+(!a12^a4^!a12*a4)+!a15+!a14+a2+(!a1*!(a15*a15*(a15*((a15^(a2+a15^a14))^a2*a14)>!a15)*a2*a15*!a2))+a9+a7+(a6^!a8^a6*!a8)))*(!(!a7+a3+!a8+!a4+!a14+!a2+!a10+!a13+a12+(!a9+(!(((a6+a1*a10)^!(a6+a1*a10))>!(a6*!a1*a1))))+a15+a1+(!a11^(a6^!a5^a6*!a5)^!a11*(a6^!a5^a6*!a5)))+((!a3^a13^!a3*a13)+!a10+a11+!a5+(!a12^a4^!a12*a4)+!a15+!a14+a2+(!a1*!(a15*a15*(a15*((a15^(a2+a15^a14))^a2*a14)>!a15)*a2*a15*!a2))+a9+a7+(a6^!a8^a6*!a8)))*((!a7+a3+!a8+!a4+!a14+!a2+!a10+!a13+a12+(!a9+(!(((a6+a1*a10)^!(a6+a1*a10))>!(a6*!a1*a1))))+a15+a1+(!a11^(a6^!a5^a6*!a5)^!a11*(a6^!a5^a6*!a5)))+!((!a3^a13^!a3*a13)+!a10+a11+!a5+(!a12^a4^!a12*a4)+!a15+!a14+a2+(!a1*!(a15*a15*(a15*((a15^(a2+a15^a14))^a2*a14)>!a15)*a2*a15*!a2))+a9+a7+(a6^!a8^a6*!a8))))";
+    //cin >> calculate;
     addnode(calculate, root);
+    distToLeaf(root);
     cout << "Tree ready." << endl;
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     cout << "Search began." << endl;
