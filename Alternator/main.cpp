@@ -10,9 +10,13 @@
 #include <iterator>
 #include <list>
 #include <stack>
+#include <bitset>
 
 
 using namespace std;
+
+#define MAX_VARS 30
+
 
 //структура, определяющая узел дерева выражения
 struct node
@@ -57,7 +61,6 @@ void removeOuterBraces(string &str) {
     str.insert(0, "(");
     str.append(")");
 }
-
 
 //вспомогательная структура для поиска наименее приоритетного оператора
 struct operators
@@ -185,11 +188,15 @@ void addnode(string expression, node* tree) {
 
 
 //глобальный стек для сохранения данных, пришедших из родителя.
-stack <list<list<short>>> globalStack;
 
 //этот массив представляет собой дерево. Он нужен для определения подходящих операндов.
 //первая координата - числовое представление оператора минус 2. Вторая - желаемое значение. Так можно попасть в массив подходящих операндов.
 //здесь отсутствует отрицание, т.к. его обработка тривиальна.
+
+struct sknfMember {
+    bitset <MAX_VARS> vars;
+    bitset <MAX_VARS> signs;
+};
 
 short operands[5][2][7] = {
     { { 3, 1,0, 0,1, 0,0 }, { 1, 1,1, -1,-1, -1,-1 } },   // 2 умножение
@@ -209,13 +216,18 @@ short operands[5][2][7] = {
 
 short valueToPost = -1;
 
-list<list<short>>::iterator it1;   //итератор для перемещения по списку комбинаций
+list<sknfMember>::iterator it1;   //итератор для перемещения по списку комбинаций
 list<short>::iterator it2;         //итератор для перемещения внутри одной комбинации
 
 bool needToPost;        //хранит информацию, нужно ли записать переменную в список
 
 //-----------------------------------------------------------------------
-void sknfSearch(bool wantedValue, list<list<short>> &lst, node* node) {
+
+
+
+stack <list<sknfMember>> globalStack;
+
+void sknfSearch(bool wantedValue, list<sknfMember> &lst, node* node) {
     if (lst.size() == 0) {
         return;
     }
@@ -226,7 +238,7 @@ void sknfSearch(bool wantedValue, list<list<short>> &lst, node* node) {
             sknfSearch(!wantedValue, lst, node->right);
             return;
         }
-        if (operands[abs(node->value) - 2][wantedValue][0] == 1) {   // если пара операндом одна
+        if (operands[abs(node->value) - 2][wantedValue][0] == 1) {   // если пара операндов одна
             sknfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
             sknfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
             return;
@@ -264,8 +276,10 @@ void sknfSearch(bool wantedValue, list<list<short>> &lst, node* node) {
     else {    //если перед нами переменная
         valueToPost = wantedValue == 1 ? -node->value : node->value;
         //если список пустой изначально, просто добавим туда одну комбинацию из одной переменной
-        if (lst.size() == 1 && (*lst.begin()).size() == 0) {
-            (*lst.begin()).push_back(valueToPost);
+        if (lst.size() == 1 && (*lst.begin()).signs.test(MAX_VARS - 1) && !((*lst.begin()).vars.test(MAX_VARS - 1))) {
+            (*lst.begin()).signs.set(MAX_VARS - 1, 0);
+            (*lst.begin()).vars.set(node->value - 1, 1);
+            (*lst.begin()).signs.set(node->value - 1, wantedValue);   //если хотим единицу - нужно отрицание. 1 - значит нужно отрицание
             return;
         }
         else {  //если же список комбинаций не пуст, надо пройти по нему и добавить переменную туда, где ее не хватает. При противоречиях вырезать комбинацию
@@ -274,36 +288,17 @@ void sknfSearch(bool wantedValue, list<list<short>> &lst, node* node) {
 
             while (it1 != lst.end()) {
 
-                needToPost=true;
-                it2 = (* it1).begin();
-
-                while (it2 != (*it1).end()) {
-                    
-                    if (node->value < abs((*it2))) {     // если нашли переменную с номером больше текущей, вставляем сюда.
-                        (*it1).insert(it2, valueToPost);
-                        needToPost = false;
+                if ((*it1).vars.test(node->value - 1)) {
+                    if ((*it1).signs.test(node->value - 1) != wantedValue) {
+                        lst.erase(it1++);
+                    }
+                    else {
                         ++it1;
-                        break;
                     }
-
-                    //если наткнулись на эту же переменную, нужно проверить, в каком виде она входит
-                    else if (node->value == abs((*it2))) {
-
-                        //если она уже входит с другим знаком - комбинация дефектная, в мусор
-                        if (valueToPost != (*it2)) {
-                            lst.erase(it1++);
-                        }
-                        else {
-                            ++it1;
-                        }
-
-                        needToPost = false;
-                        break;
-                    }
-                    ++it2;
                 }
-                if (needToPost) {
-                    (*it1).push_back(valueToPost);
+                else {
+                    (*it1).vars.set(node->value - 1, 1);
+                    (*it1).signs.set(node->value - 1, wantedValue);
                     ++it1;
                 }
             }
@@ -645,10 +640,11 @@ bool compareAnswers(list<list<short>> actualAns, vector<vector<string>> wantedAn
 int main()
 {
     srand(time(NULL));
-    pair <vector<vector<string>>, string> answer = newGenerator(25, 100, 1500, 20000);
+    pair <vector<vector<string>>, string> answer = newGenerator(23, 30, 666, 5000);
     //pair <vector<vector<string>>, string> answer = newGenerator(20, 17, 200, 2000);
-    list<list<short>> resultSKNF;
-    list<short> buf;
+    list<sknfMember> resultSKNF;
+    sknfMember buf;
+    buf.signs.set(MAX_VARS - 1, 1);
     resultSKNF.push_back(buf);
     node* root = new node;
     string calculate;
@@ -681,22 +677,17 @@ int main()
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     cout << "Time difference = " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " seconds" << std::endl;
     cout << "Actual answer: " << endl;
-
     for (auto it1 = resultSKNF.begin(); it1 != resultSKNF.end(); it1++) {
-
-        for (auto it2 = (*it1).begin(); it2 != (*it1).end(); it2++) {
-            if ((*it2) < 0)
-                cout << "!";
-            cout << "a";
-            cout << abs((*it2)) << " ";
-
+        for (int i = 0; i < MAX_VARS; i++) {
+            if ((*it1).vars.test(i)) {
+                if ((*it1).signs.test(i)) {
+                    cout << "!";
+                }
+                cout << "a" << i + 1 << " ";
+            }
         }
         cout << endl;
     }
-
-
-    cout << "Are answers equal? " << compareAnswers(resultSKNF, answer.first);
-    
     return 0;
 }
 
