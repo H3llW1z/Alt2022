@@ -15,7 +15,8 @@
 using namespace std;
 
 
-#define MAX_VARS 8     //максимальное количество переменных в формуле. Можно редактировать
+#define MAX_VARS 8     //максимальное количество переменных в формуле. МОЖНО РЕДАКТИРОВАТЬ (C++ не имеет встроенных динамических битовых шкал, сторонние работают хуже.
+                       //Если удастся найти хорошую реализацию динамических шкал, программа будет доработана с их использованием. Это лишь тонкость реализации.
 
 //структура, определяющая узел дерева выражения
 struct node
@@ -464,6 +465,7 @@ string complicateConstant(int numOfVars, int numOfVarsTotal, bool constFlag) {
     }
 }
 
+
 //проверяет, являются ли члены СКНФ одинаковыми по составу, нужна для удаления дубликатов для вывода в качестве ожидаемого ответа
 bool areMembersEqual(vector<string> a, vector<string> b) {
     bool answer = true;
@@ -668,6 +670,7 @@ pair<vector<vector<string>>, string> newGenerator(int ceilNumOfMembers, int numO
     return make_pair(standartizedSKNF, answer);
 }
 
+
 //сравнивает ожидаемый ответ и тот, который получила функция
 bool compareAnswers(list<list<short>> actualAns, vector<vector<string>> wantedAns) {
 
@@ -713,7 +716,6 @@ bool compareAnswers(list<list<short>> actualAns, vector<vector<string>> wantedAn
     return true;
 }
 
-
 list<list<short>> listOfBitsetsToListOfShorts(list<sknfMember> lst) {
     list<list<short>> answer;
     
@@ -749,6 +751,7 @@ void printWantedAnswer(vector<vector<string>> vec) {
     cout << endl;
 }
 
+//печатает на экран ответ, вычисленный функций поиска
 void printActualAnswer(list<sknfMember> ans) {
     for (auto it1 = ans.begin(); it1 != ans.end(); it1++) {
         for (int i = 0; i < MAX_VARS; i++) {
@@ -763,8 +766,22 @@ void printActualAnswer(list<sknfMember> ans) {
     }
 }
 
+bool checkUserInput(string str) {
+    if (!checkBraces(str))
+        return false;
+
+    for (int i = 0; i < str.size(); i++) {
+        if (!isOperator(str[i]) && str[i] != 'a' && str[i] != '(' && str[i] != ')' && !isdigit(str[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
 int main()
 {
+    list<sknfMember> resultSKNF;
     setlocale(LC_ALL, "ru");
     char choice = '-';
     cout << "Что вы хотите сделать?\n";
@@ -825,7 +842,7 @@ int main()
                 cout << "Формула:\n";
                 cout << answer.second << endl;
             }
-            list<sknfMember> resultSKNF;
+            resultSKNF.clear();
             sknfMember buf;
             buf.signs.set(0, 1);
             resultSKNF.push_back(buf);
@@ -841,31 +858,68 @@ int main()
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
             cout << "Равны ли ответы: " << compareAnswers(listOfBitsetsToListOfShorts(resultSKNF), answer.first) << endl;
-            cout << "Куда вывести ответ?\n" <<
-                "1.На экран\n" <<
-                "2.В файл\n" <<
-                "3.И на экран и в файл.\n";
-            cin >> choice;
-            while (choice != '1' && choice != '2' && choice != '3') {
-                cout << "Введите 1, 2 или 3.\n";
-                cin >> choice;
-            }
-            if (choice == '1') {
-                printActualAnswer(resultSKNF);
-            }
-            if (choice == '2') {
-                //TODO
-            }
-
-            if (choice == '3') {
-                //TODO
-            }
+            
         }; break;
         case '2':
         {
-            
+            cout << "Используемые обозначения:\n" <<
+                "! - отрицание\n" <<
+                "+ - дизъюнкция\n" <<
+                "* - конъюнкция\n" <<
+                "> - импликация\n" <<
+                "= - эквивалентность\n" <<
+                "v - стрелка Пирса\n" <<
+                "| - штрих Шеффера\n" <<
+                "Формат названия переменных: a1, a2, ... , an\n" <<
+                "Скобки допускаются. Отрицание может стоять как перед переменной, так и перед скобками.\n";
+            string userInput;
+            cout << "Введите вашу формулу:\n";
+            cin >> userInput;
+            while (!checkUserInput(userInput)) {
+                cout << "Вы ввели некорректное выражение. Пожалуйста, проверьте его и исправьте ошибки.\n";
+                cin >> userInput;
+            }
+
+            resultSKNF.clear();
+            sknfMember buf;
+            buf.signs.set(0, 1);
+            resultSKNF.push_back(buf);
+
+            node* root = new node;
+            cout << "Начинается поиск.\n";
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+            addnode(userInput, root);
+            cout << "Дерево построено\n";
+            distToLeaf(root);
+            cout << "Рёбра отмечены\n";
+            sknfSearch(0, resultSKNF, root);
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
         }; break;
         }
+
+        //вывод ответа
+
+        cout << "Куда вывести ответ?\n" <<
+            "1.На экран\n" <<
+            "2.В файл\n" <<
+            "3.И на экран и в файл.\n";
+        cin >> choice;
+        while (choice != '1' && choice != '2' && choice != '3') {
+            cout << "Введите 1, 2 или 3.\n";
+            cin >> choice;
+        }
+        if (choice == '1') {
+            printActualAnswer(resultSKNF);
+        }
+        if (choice == '2') {
+            //TODO
+        }
+
+        if (choice == '3') {
+            //TODO
+        }
+
     }; break;
     case '2':
     {
