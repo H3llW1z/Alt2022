@@ -15,7 +15,7 @@
 using namespace std;
 
 
-#define MAX_VARS 15     //максимальное количество переменных в формуле. Можно редактировать
+#define MAX_VARS 8     //максимальное количество переменных в формуле. Можно редактировать
 
 //структура, определяющая узел дерева выражения
 struct node
@@ -713,6 +713,7 @@ bool compareAnswers(list<list<short>> actualAns, vector<vector<string>> wantedAn
     return true;
 }
 
+
 list<list<short>> listOfBitsetsToListOfShorts(list<sknfMember> lst) {
     list<list<short>> answer;
     
@@ -720,14 +721,17 @@ list<list<short>> listOfBitsetsToListOfShorts(list<sknfMember> lst) {
 
         list<short> buf;
         for (int j = 0; j < MAX_VARS; j++) {
-            short bufVar = 0;
-            if ((*it1).signs[j] == 0) {
-                bufVar = j + 1;
+            if ((*it1).vars[j] == 1) {
+                short bufVar = 0;
+                if ((*it1).signs[j] == 0) {
+                    bufVar = j + 1;
+                }
+                else {
+                    bufVar = -(j + 1);
+                }
+                buf.push_back(bufVar);
+                
             }
-            else {
-                bufVar = -(j + 1);
-            }
-            buf.push_back(bufVar);
         }
         answer.push_back(buf);
     }
@@ -819,7 +823,7 @@ int main()
             }
             if (choice == '1') {
                 cout << "Формула:\n";
-                cout << answer.second;
+                cout << answer.second << endl;
             }
             list<sknfMember> resultSKNF;
             sknfMember buf;
