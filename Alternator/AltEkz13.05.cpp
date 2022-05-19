@@ -1072,23 +1072,63 @@ void printWantedAnswer(vector<vector<string>> vec) {
 }
 
 //печатает на экран ответ, вычисленный функций поиска
-void printActualAnswer(list<sknfMember> ans) {
+void printActualAnswerSKNF(list<sknfMember> ans) {
     for (auto it1 = ans.begin(); it1 != ans.end(); it1++) {
+        cout << "(";
         for (int i = 0; i < MAX_VARS; i++) {
             if ((*it1).vars.test(i)) {
                 if ((*it1).signs.test(i)) {
                     cout << "!";
                 }
-                cout << "a" << i + 1 << " ";
+                if ((i) != 0)
+                {
+                    cout << "+";
+                }
+                cout << "a" << i + 1;
             }
         }
-        cout << endl;
+        cout << ")";
+        if (std::next(it1) != ans.end())
+        {
+            cout << "*";
+        }
+    }
+}
+void printActualAnswerSDNF(list<sknfMember> ans) {
+    for (auto it1 = ans.begin(); it1 != ans.end(); it1++) {
+        cout << "(";
+        for (int i = 0; i < MAX_VARS; i++) {
+            if ((*it1).vars.test(i)) {
+                if ((*it1).signs.test(i)) {
+                    cout << "!";
+                }
+                if ((i) != 0)
+                {
+                    cout << "*";
+                }
+                cout << "a" << i + 1;
+            }
+        }
+        cout << ")";
+        if (std::next(it1) != ans.end())
+        {
+            cout << "+";
+        }
     }
 }
 void printSDNFInFile(list<sknfMember> ans,string exception)
 {
     ofstream fout;
     fout.open("SDNF.txt");
+    fout << "Используемые обозначения:\n" <<
+        "! - отрицание\n" <<
+        "+ - дизъюнкция\n" <<
+        "* - конъюнкция\n" <<
+        "> - импликация\n" <<
+        "= - эквивалентность\n" <<
+        "v - стрелка Пирса\n" <<
+        "| - штрих Шеффера\n" <<
+        "Формат названия переменных: a1, a2, ... , an\n";
     fout << "Формула:\n";
     for (int j = 0; j < exception.size(); ++j)
     {
@@ -1125,6 +1165,15 @@ void printSKNFInFile(list<sknfMember> ans, string exception)
 {   
     ofstream fout;
     fout.open("SKNF.txt");
+    fout << "Используемые обозначения:\n" <<
+        "! - отрицание\n" <<
+        "+ - дизъюнкция\n" <<
+        "* - конъюнкция\n" <<
+        "> - импликация\n" <<
+        "= - эквивалентность\n" <<
+        "v - стрелка Пирса\n" <<
+        "| - штрих Шеффера\n" <<
+        "Формат названия переменных: a1, a2, ... , an\n";
     fout << "Формула:\n";
     for (int j = 0; j < exception.size(); ++j)
     {
@@ -1306,14 +1355,14 @@ int main()
         }
         if (choice == '1') {
             
-            printActualAnswer(resultSKNF);
+            printActualAnswerSKNF(resultSKNF);
         }
         if (choice == '2') {
             printSKNFInFile(resultSKNF,calculate);
         }
 
         if (choice == '3') {
-            printActualAnswer(resultSKNF);
+            printActualAnswerSKNF(resultSKNF);
             printSKNFInFile(resultSKNF, calculate);
         }
 
@@ -1436,14 +1485,14 @@ int main()
             cin >> choice;
         }
         if (choice == '1') {
-            printActualAnswer(resultSKNF);
+            printActualAnswerSDNF(resultSKNF);
         }
         if (choice == '2') {
             printSDNFInFile(resultSKNF, calculate);
         }
 
         if (choice == '3') {
-            printActualAnswer(resultSKNF);
+            printActualAnswerSDNF(resultSKNF);
             printSDNFInFile(resultSKNF, calculate);
         }
     }; break;
