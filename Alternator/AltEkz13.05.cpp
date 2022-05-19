@@ -11,6 +11,7 @@
 #include <list>
 #include <stack>
 #include <bitset>
+#include <fstream>
 
 using namespace std;
 
@@ -1084,7 +1085,80 @@ void printActualAnswer(list<sknfMember> ans) {
         cout << endl;
     }
 }
-
+void printSDNFInFile(list<sknfMember> ans,string exception)
+{
+    ofstream fout;
+    fout.open("SDNF.txt");
+    fout << "Формула:\n";
+    for (int j = 0; j < exception.size(); ++j)
+    {
+        fout << exception[j];
+        if (j%110 == 0 && j>1)
+        {
+            fout << endl;
+        }
+    }
+    fout << "\nСДНФ:\n";
+    for (auto it1 = ans.begin(); it1 != ans.end(); it1++) {
+        fout << "(";
+        for (int i = 0; i < MAX_VARS; i++) {
+            if ((*it1).vars.test(i)) {
+                if ((*it1).signs.test(i)) {
+                    fout << "!";
+                }
+                if ((i) != 0)
+                {
+                    fout << "*";
+                }
+                fout << "a" << i + 1;
+            }
+        }
+        fout << ")";
+        if (std::next(it1) != ans.end())
+        {
+            fout << "+";
+        }
+    }
+    fout.close();
+}
+void printSKNFInFile(list<sknfMember> ans, string exception)
+{   
+    ofstream fout;
+    fout.open("SKNF.txt");
+    fout << "Формула:\n";
+    for (int j = 0; j < exception.size(); ++j)
+    {
+        fout << exception[j];
+        if (j%110 == 1 && j >1)
+        {
+            fout << endl;
+        }
+    }
+    
+    fout << "\nСКНФ:\n";
+    for (auto it1 = ans.begin(); it1 != ans.end(); it1++) {
+        fout << "(";
+        for (int i = 0; i < MAX_VARS; i++) {
+            if ((*it1).vars.test(i)) {
+                if ((*it1).signs.test(i)) {
+                    fout << "!";
+                }
+                if ((i) != 0)
+                {
+                    fout << "+";
+                }
+                fout << "a" << i + 1;
+                
+            }
+        }
+        fout << ")";
+        if (std::next(it1) != ans.end())
+        {
+            fout << "*";
+        }
+    }
+    fout.close();
+}
 bool checkUserInput(string str) {
     if (!checkBraces(str))
         return false;
@@ -1100,6 +1174,7 @@ bool checkUserInput(string str) {
 
 int main()
 {
+    string calculate;
     list<sknfMember> resultSKNF;
     setlocale(LC_ALL, "ru");
     char choice = '-';
@@ -1145,6 +1220,7 @@ int main()
                 cin >> approxSize;
             }
             pair <vector<vector<string>>, string> answer = newGeneratorSKNF(numOfMembers, numOfVariables, numOfNegations, approxSize);
+            calculate = answer.second;
             cout << "Формула сгенерирована.\n";
             cout << "Ожидаемый ответ:\n";
             printWantedAnswer(answer.first);
@@ -1191,12 +1267,12 @@ int main()
                 "| - штрих Шеффера\n" <<
                 "Формат названия переменных: a1, a2, ... , an\n" <<
                 "Скобки допускаются. Отрицание может стоять как перед переменной, так и перед скобками.\n";
-            string userInput;
+            
             cout << "Введите вашу формулу:\n";
-            cin >> userInput;
-            while (!checkUserInput(userInput)) {
+            cin >> calculate;
+            while (!checkUserInput(calculate)) {
                 cout << "Вы ввели некорректное выражение. Пожалуйста, проверьте его и исправьте ошибки.\n";
-                cin >> userInput;
+                cin >> calculate;
             }
 
             resultSKNF.clear();
@@ -1207,7 +1283,7 @@ int main()
             node* root = new node;
             cout << "Начинается поиск.\n";
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-            addnode(userInput, root);
+            addnode(calculate, root);
             cout << "Дерево построено\n";
             distToLeaf(root);
             cout << "Рёбра отмечены\n";
@@ -1229,14 +1305,16 @@ int main()
             cin >> choice;
         }
         if (choice == '1') {
+            
             printActualAnswer(resultSKNF);
         }
         if (choice == '2') {
-            //TODO
+            printSKNFInFile(resultSKNF,calculate);
         }
 
         if (choice == '3') {
-            //TODO
+            printActualAnswer(resultSKNF);
+            printSKNFInFile(resultSKNF, calculate);
         }
 
     }; break;
@@ -1273,6 +1351,7 @@ int main()
                 cin >> approxSize;
             }
             pair <vector<vector<string>>, string> answer = newGeneratorSDNF(numOfMembers, numOfVariables, numOfNegations, approxSize);
+            calculate = answer.second;
             cout << "Формула сгенерирована.\n";
             cout << "Ожидаемый ответ:\n";
             printWantedAnswer(answer.first);
@@ -1319,12 +1398,12 @@ int main()
                 "| - штрих Шеффера\n" <<
                 "Формат названия переменных: a1, a2, ... , an\n" <<
                 "Скобки допускаются. Отрицание может стоять как перед переменной, так и перед скобками.\n";
-            string userInput;
+           
             cout << "Введите вашу формулу:\n";
-            cin >> userInput;
-            while (!checkUserInput(userInput)) {
+            cin >> calculate;
+            while (!checkUserInput(calculate)) {
                 cout << "Вы ввели некорректное выражение. Пожалуйста, проверьте его и исправьте ошибки.\n";
-                cin >> userInput;
+                cin >> calculate;
             }
 
             resultSKNF.clear();
@@ -1335,7 +1414,7 @@ int main()
             node* root = new node;
             cout << "Начинается поиск.\n";
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-            addnode(userInput, root);
+            addnode(calculate, root);
             cout << "Дерево построено\n";
             distToLeaf(root);
             cout << "Рёбра отмечены\n";
@@ -1360,11 +1439,12 @@ int main()
             printActualAnswer(resultSKNF);
         }
         if (choice == '2') {
-            //TODO
+            printSDNFInFile(resultSKNF, calculate);
         }
 
         if (choice == '3') {
-            //TODO
+            printActualAnswer(resultSKNF);
+            printSDNFInFile(resultSKNF, calculate);
         }
     }; break;
     }
