@@ -12,10 +12,11 @@
 #include <stack>
 #include <bitset>
 #include <fstream>
+
 using namespace std;
 
 
-#define MAX_VARS 15     //максимальное количество переменных в формуле. МОЖНО РЕДАКТИРОВАТЬ (C++ не имеет встроенных динамических битовых шкал, сторонние работают хуже.
+#define MAX_VARS 12     //максимальное количество переменных в формуле. МОЖНО РЕДАКТИРОВАТЬ (C++ не имеет встроенных динамических битовых шкал, сторонние работают хуже.
 //Если удастся найти хорошую реализацию динамических шкал, программа будет доработана с их использованием. Это лишь тонкость реализации.
 
 //структура, определяющая узел дерева выражения
@@ -388,7 +389,134 @@ void sknfSearch(bool wantedValue, list<sknfMember>& lst, node* node) {
         }
     }
 }
+void sdnfSearch(bool wantedValue, list<sknfMember>& lst, node* node) {
 
+    if (lst.size() == 0) {   //если родитель прислал пустой список (не опустошённый, а пустой изначально!) - добавить туда уже ничего нельзя. Выходим
+        return;
+    }
+
+    if (node->value < 0) {         //если попали в оператор
+
+        if (node->value == -1) {   //в случае отрицания инвертируем желаемое значение и продолжим поиск направо
+            sdnfSearch(!wantedValue, lst, node->right);
+            return;
+        }
+        if (operands[abs(node->value) - 2][wantedValue][0] == 1) {   // если пара операндов одна
+
+            if (node->rightWeight < node->leftWeight) {         //если по правому ребру можно быстрее попать в переменную, идём сперва направо, затем налево
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
+            }
+            else {             //в противном случае идём налево, затем направо
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
+            }
+            return;
+        }
+        if (operands[abs(node->value) - 2][wantedValue][0] == 2) {   //если пар операндов две
+
+            globalStack.push(lst);   //информацию из родителя нужно сохранить для рассмотрения второго случая. Положим ее на стек
+
+            if (node->rightWeight < node->leftWeight) {            //развилка, аналогичная первому случаю
+
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right); //пойдём право и налево со списком родителя
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
+
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][4], globalStack.top(), node->right);  //пойдём направо и налево со списком, хранящимся в стеке
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][3], globalStack.top(), node->left);
+            }
+            else {
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
+
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][3], globalStack.top(), node->left);
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][4], globalStack.top(), node->right);
+            }
+            lst.insert(lst.end(), globalStack.top().begin(), globalStack.top().end());   //объединим результаты обоих случаев в список родителя
+            globalStack.pop();   //снимем результат второго случая со стека
+            return;
+        }
+        if (operands[abs(node->value) - 2][wantedValue][0] == 3) {  //если пар операндов 3
+
+            globalStack.push(lst);  //информацию из родителя нужно сохранить для рассмотрения второго и третьего случая. Положим ее на стек
+
+            /*В случае трёх пар есть возможность сократить работу. Среди трёх пар одно число встречается 2 раза и среди левых значений, и среди правых
+            * Например, импликация даёт 1 на парах (0,0), (0,1). (1,1). Если начинать поиск слева, то искать 0 слева нужно только 1 раз, а если
+            * начинать искать справа, то единицу только 1 раз. Таким образом рассмотрим 3 пары за 5 вызовов вместо 6.
+            */
+            if (node->rightWeight < node->leftWeight) {     //аналогично случаю 1
+
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][4], lst, node->right);  //рассмотрим "выбивающийся" случай. Тот, для которого и налево и направо нужно идти отдельно
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][3], lst, node->left);
+
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][2], globalStack.top(), node->right);  //сходим направо сразу для двух оставшихся случаев при помощи списка из стека
+
+                globalStack.push(globalStack.top()); //скопируем в стек результат "общего" похода, чтобы совершить 2 последних вызова
+
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][1], globalStack.top(), node->left);    //идём налево со списом со стека
+                lst.insert(lst.end(), globalStack.top().begin(), globalStack.top().end());  //запишем результат в список родителя
+
+                globalStack.pop();   //снимем со стека один список
+
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][5], globalStack.top(), node->left); //сходим налево для третьего случая
+            }
+            else {
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][1], lst, node->left);
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][2], lst, node->right);
+
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][3], globalStack.top(), node->left);
+
+                globalStack.push(globalStack.top());
+
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][4], globalStack.top(), node->right);
+                lst.insert(lst.end(), globalStack.top().begin(), globalStack.top().end());
+
+                globalStack.pop();
+
+                sdnfSearch(operands[abs(node->value) - 2][wantedValue][6], globalStack.top(), node->right);
+            }
+            lst.insert(lst.end(), globalStack.top().begin(), globalStack.top().end());  //запишем в конец списка родителя результат последнего третьего случая
+            globalStack.pop();  //снимем со стека второй буферный список
+            return;
+        }
+    }
+    else {    //если перед нами переменная
+
+        //если список пустой изначально, просто добавим туда одну комбинацию из одной переменной
+        //Чтобы отличить пустой список от того, из которого удалены все комбинации, в нём создаётся невозможная ситуация - "метка"
+        //В бит знака первой переменной ставится 1, что означает отрицание. Но в шкале переменных у первой переменной оставляют 0
+        //Именно эту ситуацию проверяет if
+        if (lst.size() == 1 && (*lst.begin()).signs.test(0) && !((*lst.begin()).vars.test(0))) {
+
+            (*lst.begin()).signs.set(0, 0);   //уберём "метку"
+            (*lst.begin()).vars.set(node->value - 1, 1);  //отметим найденную переменную
+            (*lst.begin()).signs.set(node->value - 1, !wantedValue);   //и запишем ее знак
+            return;
+        }
+        else {  //если же список комбинаций не пуст, надо пройти по нему и добавить переменную туда, где ее не хватает. При противоречиях вырезать комбинацию
+
+            it1 = lst.begin();  //внешний итератор поместим в начало списка комбинаций
+
+            while (it1 != lst.end()) {
+
+                if ((*it1).vars.test(node->value - 1)) {
+                    if ((*it1).signs.test(node->value - 1) != !wantedValue ) {
+                        lst.erase(it1++);
+                    }
+                    else {
+                        ++it1;
+                    }
+                }
+                else {
+                    (*it1).vars.set(node->value - 1, 1);
+                    (*it1).signs.set(node->value - 1,!wantedValue );
+                    ++it1;
+                }
+            }
+            return;
+        }
+    }
+}
 //считает количество вхождений в строку переменных и операторов
 int countVarsAndOperators(string str) {
     int answer = 0;
@@ -482,7 +610,7 @@ bool areMembersEqual(vector<string> a, vector<string> b) {
 //Принимает максимальное количество членов СКНФ (могут появиться дубликаты, которые будут удалены), количество переменных, количество отрицаний в СКНФ
 //и приблизительное суммарное количество переменных и операторов
 
-pair<vector<vector<string>>, string> newGenerator(int ceilNumOfMembers, int numOfVars, int numOfNegations, int approxSize) {
+pair<vector<vector<string>>, string> newGeneratorSKNF(int ceilNumOfMembers, int numOfVars, int numOfNegations, int approxSize) {
     //проверки перед генерацией
     if (ceilNumOfMembers > pow(2, numOfVars)) {  //нельзя создать больше членов, чем возможно при таком количестве переменных
         throw invalid_argument("Number of members bigger than possible");
@@ -715,6 +843,198 @@ bool compareAnswers(list<list<short>> actualAns, vector<vector<string>> wantedAn
     }
     return true;
 }
+pair<vector<vector<string>>, string> newGeneratorSDNF(int ceilNumOfMembers, int numOfVars, int numOfNegations, int approxSize) {
+    //проверки перед генерацией
+    if (ceilNumOfMembers > pow(2, numOfVars)) {  //нельзя создать больше членов, чем возможно при таком количестве переменных
+        throw invalid_argument("Number of members bigger than possible");
+    }
+
+    if (numOfNegations > ceilNumOfMembers * numOfVars) {    //нельзя вставить больше отрицаний, чем всего вхождений переменных в СКНФ
+        throw invalid_argument("Number of negations can't be bigger than summary number of variables in PCNF");
+    }
+
+    if (approxSize < (2 * ceilNumOfMembers - 1) * (2 * numOfVars - 1)) {   //нельзя просить длину меньше самой СКНФ
+        throw invalid_argument("Too short approxSize");
+    }
+
+
+    vector<vector<string>> sdnf;    //в этот вектор поместим будущую скнф
+
+    int negationsSet = 0;    //количество уже установленных знаков отрицания
+
+
+    for (int i = 0; i < ceilNumOfMembers; i++) {
+        vector<string> member;
+        for (int j = 1; j <= numOfVars; j++) {
+
+            member.push_back("a" + to_string(j));
+            int needNegation = rand() % 5;
+            if (needNegation == 1 && negationsSet < numOfNegations) {
+                member[member.size() - 1].insert(0, 1, '!');
+                negationsSet += 1;
+            }
+        }
+        sdnf.push_back(member);
+    }
+
+    while (negationsSet < numOfNegations) {    //если установлено недостаточно отрицаний - добавим пока не наберём
+        bool isReady = false;
+
+        for (int i = 0; i < sdnf.size(); i++) {
+
+            for (int j = 0; j < sdnf[i].size(); j++) {
+                if (sdnf[i][j][0] != '!' && (rand() % 2)) {
+                    negationsSet += 1;
+                    if (negationsSet == numOfNegations) {
+                        isReady = true;
+                        break;
+                    }
+                    sdnf[i][j].insert(0, 1, '!');
+                }
+            }
+            if (isReady)
+                break;
+        }
+    }
+
+
+    //теперь нужно удалить все дубликаты из скнф чтобы предоставить её на выход. А использовать далее можно и с дубликатами
+    vector<vector<string>> standartizedSDNF;
+
+    for (int i = 0; i < sdnf.size(); i++) {
+        bool needToAdd = true;
+        for (int j = 0; j < standartizedSDNF.size(); j++) {
+            if (areMembersEqual(sdnf[i], standartizedSDNF[j])) {
+                needToAdd = false;
+            }
+        }
+        if (needToAdd) {
+            standartizedSDNF.push_back(sdnf[i]);
+        }
+    }
+
+    //такое количество переменных и операторов нужно докинуть,отнимем то, что уже занимает сама СНКФ.
+    int needToAdd = approxSize - (2 * numOfVars - 1) * (2 * ceilNumOfMembers - 1) - negationsSet;
+
+    //Это можно в принципе менять. Это распределение ожидаемого увеличения длины на каждом уровне.
+    int onVarLevel = needToAdd / 4;
+    int onMemberLevel = onVarLevel;
+    int onFormulaLevel = needToAdd / 2;
+
+    //усложнение на уровне переменных. К переменным добавляем формулы, являющиеся тождественными нулями или единицами. (x=x*1 or x=x+0)
+
+    int perMember = onVarLevel / ceilNumOfMembers;  // такое колчество должен набрать каждый член в среднем
+
+    for (int i = 0; i < sdnf.size(); i++) {
+
+        string ans;
+        int toAdd = perMember;   //оставшееся количество символов, которое нужно набрать
+
+        while (toAdd > perMember / 10) {   //пока не набрали хотя бы 90% от нужного, продолжаем
+
+            for (int j = 0; j < sdnf[i].size(); j++) {
+
+                if (toAdd <= perMember / 10) {
+                    break;
+                }
+
+                int needComplicate = rand() % numOfVars;
+
+                if (needComplicate == 1) {
+
+                    int zeroOrOne = rand() % 2;
+
+                    if (zeroOrOne == 1) {
+                        ans = complicateConstant(3 + rand() % 2, numOfVars, 1);
+                        sdnf[i][j] += "*" + ans;
+                    }
+                    else {
+                        ans = complicateConstant(3 + rand() % 2, numOfVars, 0);
+                        sdnf[i][j] += "+" + ans;
+                    }
+                    toAdd -= countVarsAndOperators(ans) + 1;
+                    sdnf[i][j] = "(" + sdnf[i][j] + ")";
+                }
+            }
+        }
+    }
+
+
+    //теперь проведём усложнение на уровне члена СДНФ. Будем запутывать переменные.
+
+    //генератор случайных чисел, нужен для перемешивания элементов между собой
+    random_device rd;
+    default_random_engine rng(rd());
+
+    int onLevel2 = onMemberLevel / ceilNumOfMembers;    //столько должнен набрать каждый член СДНФ
+
+    for (int i = 0; i < sdnf.size(); i++) {
+
+
+        int toAdd = onLevel2;
+
+        while (toAdd > onLevel2 / 10 && sdnf[i].size() != 1) {
+
+            shuffle(sdnf[i].begin(), sdnf[i].end(), rng);   //запутаем элементы между собой
+
+            string newMember;
+            int lastIndex = sdnf[i].size() - 1;
+
+            
+            //тут используется равенство x*y = (x+y)*(!x+y)*(x+!y)
+            newMember = "((" + sdnf[i][0] + "+" + sdnf[i][lastIndex] + ")*(!(" + sdnf[i][0] + ")+" + sdnf[i][lastIndex] + ")*(" + sdnf[i][0] + "+!(" + sdnf[i][lastIndex] + ")))";
+            //newMember = "(" + sknf[i][0] + "^" + sknf[i][lastIndex] + "^" + sknf[i][0] + "*" + sknf[i][lastIndex] + ")";
+            toAdd -= countVarsAndOperators(sdnf[i][0]) + countVarsAndOperators(sdnf[i][lastIndex]) + 7;
+            sdnf[i].pop_back();
+            sdnf[i].erase(sdnf[i].begin());
+            sdnf[i].push_back(newMember);
+        }
+    }
+
+    //теперь усложнённые члены соединим в строки
+    vector <string> compMembSDNF;
+    for (int i = 0; i < sdnf.size(); i++) {
+        string buf = "(";
+        for (int j = 0; j < sdnf[i].size(); j++) {
+            buf.append(sdnf[i][j]);
+            buf += "*";
+        }
+        buf[buf.size() - 1] = ')';
+        compMembSDNF.push_back(buf);
+    }
+
+
+    //теперь проведём усложнение на уровне формулы, запутывая члены СДНФ. Между членами стоит +
+
+    int toAdd = onFormulaLevel;  //осталось добрать
+
+    
+     //Применяется равенство x+y=x^y^x*y 
+    while (toAdd > onFormulaLevel / 10 && compMembSDNF.size() != 1) {
+        shuffle(compMembSDNF.begin(), compMembSDNF.end(), rng);
+        string buf;
+        int lastIndex = compMembSDNF.size() - 1;
+        buf = "(" + compMembSDNF[0] + "^" + compMembSDNF[lastIndex] + "^" + compMembSDNF[0] + "*" + compMembSDNF[lastIndex] + ")";
+        //buf = "((" + compMembSKNF[0] + "+" + compMembSKNF[lastIndex] + ")*(!" + compMembSKNF[0] + "+" + compMembSKNF[lastIndex] + ")*(" + compMembSKNF[0] + "+!" + compMembSKNF[lastIndex] + "))";
+        toAdd -= 2 * countVarsAndOperators(compMembSDNF[0]) + 2 * countVarsAndOperators(compMembSDNF[lastIndex]) + 3;
+        compMembSDNF.pop_back();
+        compMembSDNF.erase(compMembSDNF.begin());
+        compMembSDNF.push_back(buf);
+    }
+
+    //наконец, соединим всё в одну строку
+    string answer;
+
+    for (int i = 0; i < compMembSDNF.size(); i++) {
+        answer += compMembSDNF[i];
+        answer += "+";
+    }
+    answer.pop_back();
+
+    return make_pair(standartizedSDNF, answer);
+}
+
+
 
 list<list<short>> listOfBitsetsToListOfShorts(list<sknfMember> lst) {
     list<list<short>> answer;
@@ -741,89 +1061,51 @@ list<list<short>> listOfBitsetsToListOfShorts(list<sknfMember> lst) {
 }
 
 //печатает на экран ожидаемый ответ
-void printWantedAnswerSKNF(vector<vector<string>> vec) {
+void printWantedAnswer(vector<vector<string>> vec) {
     for (int i = 0; i < vec.size(); i++) {
-        cout << "(";
         for (int j = 0; j < vec[i].size(); j++) {
-            if ((j) != 0)
-            {
-                cout << "+";
-            }
-            cout << vec[i][j];
+            cout << vec[i][j] << " ";
         }
-        cout << ")";
-        if (i != vec.size() - 1)
-        {
-            cout << "*";
-        }
+        cout << endl;
     }
-   
-}
-void printWantedAnswerSDNF(vector<vector<string>> vec) {
-    for (int i = 0; i < vec.size(); i++) {
-        cout << "(";
-        for (int j = 0; j < vec[i].size(); j++) {
-            if ((j) != 0)
-            {
-                cout << "*";
-            }
-            cout << vec[i][j] ;
-        }
-        cout << ")";
-        if (i != vec.size() - 1)
-        {
-            cout << "+";
-        }
-    }
-    
+    cout << endl;
 }
 
 //печатает на экран ответ, вычисленный функций поиска
 void printActualAnswerSKNF(list<sknfMember> ans) {
     for (auto it1 = ans.begin(); it1 != ans.end(); it1++) {
-        cout << "(";
+        
         for (int i = 0; i < MAX_VARS; i++) {
             if ((*it1).vars.test(i)) {
+                
+                
                 if ((*it1).signs.test(i)) {
                     cout << "!";
                 }
-                if ((i) != 0)
-                {
-                    cout << "+";
-                }
-                cout << "a" << i + 1;
+                cout << "a" << i + 1 << " ";
             }
         }
-        cout << ")";
-        if (std::next(it1) != ans.end())
-        {
-            cout << "*";
-        }
+        cout << endl;
+        
     }
 }
 void printActualAnswerSDNF(list<sknfMember> ans) {
     for (auto it1 = ans.begin(); it1 != ans.end(); it1++) {
-        cout << "(";
+        
         for (int i = 0; i < MAX_VARS; i++) {
             if ((*it1).vars.test(i)) {
+               
                 if ((*it1).signs.test(i)) {
                     cout << "!";
                 }
-                if ((i) != 0)
-                {
-                    cout << "*";
-                }
-                cout << "a" << i + 1;
+                cout << "a" << i + 1 <<" ";
             }
         }
-        cout << ")";
-        if (std::next(it1) != ans.end())
-        {
-            cout << "+";
-        }
+        cout << endl;
+        
     }
 }
-void printSDNFInFile(list<sknfMember> ans, string exception)
+void printSDNFInFile(list<sknfMember> ans,string exception)
 {
     ofstream fout;
     fout.open("SDNF.txt");
@@ -840,7 +1122,7 @@ void printSDNFInFile(list<sknfMember> ans, string exception)
     for (int j = 0; j < exception.size(); ++j)
     {
         fout << exception[j];
-        if (j % 110 == 0 && j > 1)
+        if (j%110 == 0 && j>1)
         {
             fout << endl;
         }
@@ -869,7 +1151,7 @@ void printSDNFInFile(list<sknfMember> ans, string exception)
     fout.close();
 }
 void printSKNFInFile(list<sknfMember> ans, string exception)
-{
+{   
     ofstream fout;
     fout.open("SKNF.txt");
     fout << "Используемые обозначения:\n" <<
@@ -885,12 +1167,12 @@ void printSKNFInFile(list<sknfMember> ans, string exception)
     for (int j = 0; j < exception.size(); ++j)
     {
         fout << exception[j];
-        if (j % 110 == 1 && j > 1)
+        if (j%110 == 1 && j >1)
         {
             fout << endl;
         }
     }
-
+    
     fout << "\nСКНФ:\n";
     for (auto it1 = ans.begin(); it1 != ans.end(); it1++) {
         fout << "(";
@@ -904,7 +1186,7 @@ void printSKNFInFile(list<sknfMember> ans, string exception)
                     fout << "+";
                 }
                 fout << "a" << i + 1;
-
+                
             }
         }
         fout << ")";
@@ -915,7 +1197,6 @@ void printSKNFInFile(list<sknfMember> ans, string exception)
     }
     fout.close();
 }
-
 bool checkUserInput(string str) {
     if (!checkBraces(str))
         return false;
@@ -931,10 +1212,10 @@ bool checkUserInput(string str) {
 
 int main()
 {
+    string calculate;
     list<sknfMember> resultSKNF;
     setlocale(LC_ALL, "ru");
     char choice = '-';
-    string calculate;
     cout << "Что вы хотите сделать?\n";
     cout << "1.Найти СКНФ\n";
     cout << "2.Найти СДНФ\n";
@@ -976,12 +1257,11 @@ int main()
                 cin >> numOfNegations;
                 cin >> approxSize;
             }
-            pair <vector<vector<string>>, string> answer = newGenerator(numOfMembers, numOfVariables, numOfNegations, approxSize);
+            pair <vector<vector<string>>, string> answer = newGeneratorSKNF(numOfMembers, numOfVariables, numOfNegations, approxSize);
             calculate = answer.second;
             cout << "Формула сгенерирована.\n";
             cout << "Ожидаемый ответ:\n";
-            printWantedAnswerSKNF(answer.first);
-            cout << endl;
+            printWantedAnswer(answer.first);
             cout << "Проверка правильности скобочной конструкции: " << checkBraces(answer.second) << endl;
             cout << "Вхождений операторов и переменных в формуле: " << countVarsAndOperators(answer.second) << endl;
             cout << "Количество символов в строке: " << answer.second.size() << endl;
@@ -1002,6 +1282,7 @@ int main()
 
             node* root = new node;
             cout << "Начинается поиск.\n";
+            checkBraces(calculate);
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             addnode(answer.second, root);
             cout << "Дерево построено\n";
@@ -1052,7 +1333,6 @@ int main()
         }
 
         //вывод ответа
-       
 
         cout << "Куда вывести ответ?\n" <<
             "1.На экран\n" <<
@@ -1064,20 +1344,147 @@ int main()
             cin >> choice;
         }
         if (choice == '1') {
+            
             printActualAnswerSKNF(resultSKNF);
         }
         if (choice == '2') {
+            printSKNFInFile(resultSKNF,calculate);
+        }
+
+        if (choice == '3') {
+            printActualAnswerSKNF(resultSKNF);
             printSKNFInFile(resultSKNF, calculate);
+        }
+
+    }; break;
+    case '2':
+    {
+        cout << "1.Сгенерировать формулу при помощи генератора.\n";
+        cout << "2.Ввести формулу с клавиатуры\n";
+        cin >> choice;
+        while (choice != '1' && choice != '2') {
+            cout << "Такого пункта нет. Введите 1 или 2\n";
+            cin >> choice;
+        }
+        switch (choice) {
+        case '1':
+        {
+            srand(time(NULL));
+
+            int numOfMembers = -1;
+            int numOfVariables = -1;
+            int numOfNegations = -1;
+            int approxSize = -1;
+            cout << "Введите количество членов, переменных, отрицаний и приблизительное количество операторов и переменных в формуле.\n";
+            cin >> numOfMembers;
+            cin >> numOfVariables;
+            cin >> numOfNegations;
+            cin >> approxSize;
+            while (numOfMembers <= 0 || numOfVariables <= 0 || numOfNegations <= 0 || numOfNegations > numOfMembers * numOfVariables ||
+                approxSize < (2 * numOfVariables - 1) * (2 * numOfMembers - 1)) {
+                cout << "Вы ввели недопустимые данные\n";
+                cout << "Попробуйте ещё раз\n";
+                cin >> numOfMembers;
+                cin >> numOfVariables;
+                cin >> numOfNegations;
+                cin >> approxSize;
+            }
+            pair <vector<vector<string>>, string> answer = newGeneratorSDNF(numOfMembers, numOfVariables, numOfNegations, approxSize);
+            calculate = answer.second;
+            cout << "Формула сгенерирована.\n";
+            cout << "Ожидаемый ответ:\n";
+            printWantedAnswer(answer.first);
+            cout << "Проверка правильности скобочной конструкции: " << checkBraces(answer.second) << endl;
+            cout << "Вхождений операторов и переменных в формуле: " << countVarsAndOperators(answer.second) << endl;
+            cout << "Количество символов в строке: " << answer.second.size() << endl;
+            cout << "Показать формулу?(1/0)\n";
+            cin >> choice;
+            while (choice != '0' && choice != '1') {
+                cout << "Введите 1 или 0.\n";
+                cin >> choice;
+            }
+            if (choice == '1') {
+                cout << "Формула:\n";
+                cout << answer.second << endl;
+            }
+            resultSKNF.clear();
+            sknfMember buf;
+            buf.signs.set(0, 1);
+            resultSKNF.push_back(buf);
+
+            node* root = new node;
+            cout << "Начинается поиск.\n";
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+            addnode(answer.second, root);
+            cout << "Дерево построено\n";
+            distToLeaf(root);
+            cout << "Рёбра отмечены\n";
+            sdnfSearch(1, resultSKNF, root);
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
+            cout << "Равны ли ответы: " << compareAnswers(listOfBitsetsToListOfShorts(resultSKNF), answer.first) << endl;
+
+        }; break;
+        case '2':
+        {
+            cout << "Используемые обозначения:\n" <<
+                "! - отрицание\n" <<
+                "+ - дизъюнкция\n" <<
+                "* - конъюнкция\n" <<
+                "> - импликация\n" <<
+                "= - эквивалентность\n" <<
+                "v - стрелка Пирса\n" <<
+                "| - штрих Шеффера\n" <<
+                "Формат названия переменных: a1, a2, ... , an\n" <<
+                "Скобки допускаются. Отрицание может стоять как перед переменной, так и перед скобками.\n";
+           
+            cout << "Введите вашу формулу:\n";
+            cin >> calculate;
+            while (!checkUserInput(calculate)) {
+                cout << "Вы ввели некорректное выражение. Пожалуйста, проверьте его и исправьте ошибки.\n";
+                cin >> calculate;
+            }
+
+            resultSKNF.clear();
+            sknfMember buf;
+            buf.signs.set(0, 1);
+            resultSKNF.push_back(buf);
+
+            node* root = new node;
+            cout << "Начинается поиск.\n";
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+            addnode(calculate, root);
+            cout << "Дерево построено\n";
+            distToLeaf(root);
+            cout << "Рёбра отмечены\n";
+            sdnfSearch(1, resultSKNF, root);
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
+        }; break;
+        }
+
+        //вывод ответа
+
+        cout << "Куда вывести ответ?\n" <<
+            "1.На экран\n" <<
+            "2.В файл\n" <<
+            "3.И на экран и в файл.\n";
+        cin >> choice;
+        while (choice != '1' && choice != '2' && choice != '3') {
+            cout << "Введите 1, 2 или 3.\n";
+            cin >> choice;
+        }
+        if (choice == '1') {
+            printActualAnswerSDNF(resultSKNF);
+        }
+        if (choice == '2') {
+            printSDNFInFile(resultSKNF, calculate);
         }
 
         if (choice == '3') {
             printActualAnswerSDNF(resultSKNF);
-            printSKNFInFile(resultSKNF, calculate);
+            printSDNFInFile(resultSKNF, calculate);
         }
-    }; break;
-    case '2':
-    {
-        cout << "TODO\n";
     }; break;
     }
 
