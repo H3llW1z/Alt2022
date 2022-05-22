@@ -19,10 +19,10 @@ using namespace std;
 #define MAX_VARS 12     //максимальное количество переменных в формуле. МОЖНО РЕДАКТИРОВАТЬ (C++ не имеет встроенных динамических битовых шкал, сторонние работают хуже.
 //Если удастся найти хорошую реализацию динамических шкал, программа будет доработана с их использованием. Это лишь тонкость реализации.
 
-#define NEW_MAX_VARS 200
-#define NEW_STACK_LIMIT 50000
+#define NEW_ALGO_MAX_VARS 200
+#define NEW_ALGO_STACK_LIMIT 50000
 
-int numOfVars = -1;   //здесь хранится количество переменных в формуле. Нужно для нового алгоритма
+int numOfVars = -1;   //хранит количество переменных в формуле
 
 //структура, определяющая узел дерева выражения
 struct node
@@ -850,6 +850,10 @@ bool compareAnswers(list<list<short>> actualAns, vector<vector<string>> wantedAn
     }
     return true;
 }
+
+//Генератор формул
+//Принимает максимальное количество членов СДНФ (могут появиться дубликаты, которые будут удалены), количество переменных, количество отрицаний в СДНФ
+//и приблизительное суммарное количество переменных и операторов
 pair<vector<vector<string>>, string> newGeneratorSDNF(int ceilNumOfMembers, int numOfVars, int numOfNegations, int approxSize) {
     //проверки перед генерацией
     if (ceilNumOfMembers > pow(2, numOfVars)) {  //нельзя создать больше членов, чем возможно при таком количестве переменных
@@ -1041,8 +1045,6 @@ pair<vector<vector<string>>, string> newGeneratorSDNF(int ceilNumOfMembers, int 
     return make_pair(standartizedSDNF, answer);
 }
 
-
-
 list<list<short>> listOfBitsetsToListOfShorts(list<sknfMember> lst) {
     list<list<short>> answer;
 
@@ -1221,11 +1223,11 @@ bool checkUserInput(string str) {
 }
 //////////////////
 
-//Reverse Polish notation - обратная польская запись
+//Reverse Polish Notation - обратная польская запись
 //вектор для хранения обратной польской записи выражения, ОПЗ получим из дерева
 vector<short> rpn;
 
-//совершает обратный обход дерева
+//совершает обратный обход дерева, получая ОПЗ
 void postOrderTravers(node *node) {
     if (node == nullptr)
         return;
@@ -1234,8 +1236,9 @@ void postOrderTravers(node *node) {
     rpn.push_back(node->value);
 }
 
-void incBitSet(bitset<NEW_MAX_VARS> &bitset) {
-    for (int i = 0; i < NEW_MAX_VARS; i++) {
+//прибавляет единицу к битовой шкале (как к двочному числу)
+void incBitSet(bitset<NEW_ALGO_MAX_VARS> &bitset) {
+    for (int i = 0; i < NEW_ALGO_MAX_VARS; i++) {
         if (!bitset.test(i)) {
             bitset.set(i, 1);
             for (int j = 0; j < i; j++) {
@@ -1246,13 +1249,14 @@ void incBitSet(bitset<NEW_MAX_VARS> &bitset) {
     }
 }
 
-void newAlg(node* node) {
+vector<bitset<NEW_ALGO_MAX_VARS>> rpnCalcutatorSKNF(node* node) {
     int bitToCheck = numOfVars;
+    vector <bitset<NEW_ALGO_MAX_VARS>> ans;
 
     int topIndex;
 
-    bitset<NEW_MAX_VARS> curSet(0);  //шкала текущей комбинации
-    bitset<NEW_STACK_LIMIT> stack(0);
+    bitset<NEW_ALGO_MAX_VARS> curSet(0);  //шкала текущей комбинации
+    bitset<NEW_ALGO_STACK_LIMIT> stack(0);
 
     postOrderTravers(node); //найдём обратную польскую запись
 
@@ -1269,64 +1273,67 @@ void newAlg(node* node) {
 
                 case -1:
                 {
-                    stack.flip(topIndex - 1);
+                    stack.set(topIndex - 1, !stack.test(topIndex - 1));
                 }; break;
 
                 case -2:
                 {
-                    stack.set(topIndex - 2, stack.test(topIndex - 1) && stack.test(topIndex - 2));
+                    stack.set(topIndex - 2, stack.test(topIndex - 2) && stack.test(topIndex - 1));
                     topIndex -= 1;
                 }; break;
                 
                 case -3:
                 {
-                    stack.set(topIndex - 2, stack.test(topIndex - 1) || stack.test(topIndex - 2));
+                    stack.set(topIndex - 2, stack.test(topIndex - 2) || stack.test(topIndex - 1));
                     topIndex -= 1;
                 }; break;
 
                 case -4:
                 {
-                    stack.set(topIndex - 2, stack.test(topIndex - 1) != stack.test(topIndex - 2));
+                    stack.set(topIndex - 2, stack.test(topIndex - 2) ^ stack.test(topIndex - 1));
                     topIndex -= 1;
                 }; break;
 
                 case -5:
                 {
-                    stack.set(topIndex - 2, !stack.test(topIndex - 1) || (stack.test(topIndex - 1) && stack.test(topIndex - 2)));
+                    stack.set(topIndex - 2, !stack.test(topIndex - 2) || stack.test(topIndex - 1));
                     topIndex -= 1;
                 }; break;
 
                 case -6:
                 {
-                    stack.set(topIndex - 2, stack.test(topIndex - 1) == stack.test(topIndex - 2));
+                    stack.set(topIndex - 2, stack.test(topIndex - 2) == stack.test(topIndex - 1));
                     topIndex -= 1;
                 }; break;
 
                 case -7:
                 {
-                    stack.set(topIndex - 2, !(stack.test(topIndex - 1) && stack.test(topIndex - 2)));
+                    stack.set(topIndex - 2, !(stack.test(topIndex - 2) && stack.test(topIndex - 1)));
                     topIndex -= 1;
                 }; break;
 
                 case -8:
                 {
-                    stack.set(topIndex - 2, !(stack.test(topIndex - 1) || stack.test(topIndex - 2)));
+                    stack.set(topIndex - 2, !(stack.test(topIndex - 2) || stack.test(topIndex - 1)));
                     topIndex -= 1;
                 }; break;
                 }
             }
         }
         if (!stack.test(0)) {
-            for (int i = 0; i < bitToCheck; i++) {
+            /*for (int i = 0; i < bitToCheck; i++) {
                 if (curSet.test(i)) {
                     cout << "!";
                 }
                 cout << "a" << i + 1 << " ";
             }
-            cout << endl;
+            cout << endl;*/
+            ans.push_back(curSet);
         }
         incBitSet(curSet);
     }
+
+    return ans;
 }
 
 
@@ -1647,16 +1654,28 @@ int main()
             cout << "Формула:\n";
             cout << answer.second << endl;
         }
-       /* cout << "Введите формулу:\n";
+        /*cout << "Введите формулу:\n";
         cin >> calculate;*/
         node* root = new node;
         cout << "Начинается поиск.\n";
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         addnode(answer.second, root);
         cout << "Дерево построено\n";
-        newAlg(root);
+        vector<bitset<NEW_ALGO_MAX_VARS>> ans = rpnCalcutatorSKNF(root);
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
+
+        list<list<short>> buf;
+        for (int i = 0; i < ans.size(); i++) {
+            list<short> buf2;
+
+            for (int j = 0; j < numOfVars; j++) {
+                ans[i].test(j) ? buf2.push_back(-(j + 1)) : buf2.push_back(j + 1);
+            }
+            buf.push_back(buf2);
+        }
+        cout << "Равны ли ответы: ";
+        cout << compareAnswers(buf, answer.first) << endl;
     }; break;
     }
 
