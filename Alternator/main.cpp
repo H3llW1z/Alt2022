@@ -19,6 +19,11 @@ using namespace std;
 #define MAX_VARS 12     //максимальное количество переменных в формуле. МОЖНО РЕДАКТИРОВАТЬ (C++ не имеет встроенных динамических битовых шкал, сторонние работают хуже.
 //Если удастся найти хорошую реализацию динамических шкал, программа будет доработана с их использованием. Это лишь тонкость реализации.
 
+#define NEW_MAX_VARS 200
+#define NEW_STACK_LIMIT 50000
+
+int numOfVars = -1;   //здесь хранится количество переменных в формуле. Нужно для нового алгоритма
+
 //структура, определяющая узел дерева выражения
 struct node
 {
@@ -185,6 +190,7 @@ void addnode(string expression, node* tree) {
         int intVar;
         intVarContainer >> intVar;
         tree->value = intVar;
+        if (numOfVars < intVar) numOfVars = intVar;
         return;
     }
     tree->value = getOperatorsIntForm(expression[lpIndex]);   //в противном случае имеем оператор - запишем его номер в узел дерева
@@ -389,6 +395,7 @@ void sknfSearch(bool wantedValue, list<sknfMember>& lst, node* node) {
         }
     }
 }
+
 void sdnfSearch(bool wantedValue, list<sknfMember>& lst, node* node) {
 
     if (lst.size() == 0) {   //если родитель прислал пустой список (не опустошённый, а пустой изначально!) - добавить туда уже ничего нельзя. Выходим
@@ -1089,6 +1096,7 @@ void printActualAnswerSKNF(list<sknfMember> ans) {
         
     }
 }
+
 void printActualAnswerSDNF(list<sknfMember> ans) {
     for (auto it1 = ans.begin(); it1 != ans.end(); it1++) {
         
@@ -1105,6 +1113,7 @@ void printActualAnswerSDNF(list<sknfMember> ans) {
         
     }
 }
+
 void printSDNFInFile(list<sknfMember> ans,string exception)
 {
     ofstream fout;
@@ -1150,6 +1159,7 @@ void printSDNFInFile(list<sknfMember> ans,string exception)
     }
     fout.close();
 }
+
 void printSKNFInFile(list<sknfMember> ans, string exception)
 {   
     ofstream fout;
@@ -1197,6 +1207,7 @@ void printSKNFInFile(list<sknfMember> ans, string exception)
     }
     fout.close();
 }
+
 bool checkUserInput(string str) {
     if (!checkBraces(str))
         return false;
@@ -1207,6 +1218,115 @@ bool checkUserInput(string str) {
         }
     }
     return true;
+}
+//////////////////
+
+//Reverse Polish notation - обратная польская запись
+//вектор для хранения обратной польской записи выражения, ОПЗ получим из дерева
+vector<short> rpn;
+
+//совершает обратный обход дерева
+void postOrderTravers(node *node) {
+    if (node == nullptr)
+        return;
+    postOrderTravers(node->left);
+    postOrderTravers(node->right);
+    rpn.push_back(node->value);
+}
+
+void incBitSet(bitset<NEW_MAX_VARS> &bitset) {
+    for (int i = 0; i < NEW_MAX_VARS; i++) {
+        if (!bitset.test(i)) {
+            bitset.set(i, 1);
+            for (int j = 0; j < i; j++) {
+                bitset.set(j, 0);
+            }
+            break;
+        }
+    }
+}
+
+void newAlg(node* node) {
+    int bitToCheck = numOfVars;
+
+    int topIndex;
+
+    bitset<NEW_MAX_VARS> curSet(0);  //шкала текущей комбинации
+    bitset<NEW_STACK_LIMIT> stack(0);
+
+    postOrderTravers(node); //найдём обратную польскую запись
+
+    while (!curSet.test(bitToCheck)) {
+        topIndex = 0;
+        for (int i = 0; i < rpn.size(); i++) {
+
+            if (rpn[i] > 0) {  //если попали в переменную
+                stack.set(topIndex, curSet.test(rpn[i] - 1));   //поместим на стек её значение в текущей шкале
+                topIndex += 1;  //изменим индекс последнего элемента в стеке
+            }
+            else {
+                switch (rpn[i]) {
+
+                case -1:
+                {
+                    stack.flip(topIndex - 1);
+                }; break;
+
+                case -2:
+                {
+                    stack.set(topIndex - 2, stack.test(topIndex - 1) && stack.test(topIndex - 2));
+                    topIndex -= 1;
+                }; break;
+                
+                case -3:
+                {
+                    stack.set(topIndex - 2, stack.test(topIndex - 1) || stack.test(topIndex - 2));
+                    topIndex -= 1;
+                }; break;
+
+                case -4:
+                {
+                    stack.set(topIndex - 2, stack.test(topIndex - 1) != stack.test(topIndex - 2));
+                    topIndex -= 1;
+                }; break;
+
+                case -5:
+                {
+                    stack.set(topIndex - 2, !stack.test(topIndex - 1) || (stack.test(topIndex - 1) && stack.test(topIndex - 2)));
+                    topIndex -= 1;
+                }; break;
+
+                case -6:
+                {
+                    stack.set(topIndex - 2, stack.test(topIndex - 1) == stack.test(topIndex - 2));
+                    topIndex -= 1;
+                }; break;
+
+                case -7:
+                {
+                    stack.set(topIndex - 2, !(stack.test(topIndex - 1) && stack.test(topIndex - 2)));
+                    topIndex -= 1;
+                }; break;
+
+                case -8:
+                {
+                    stack.set(topIndex - 2, !(stack.test(topIndex - 1) || stack.test(topIndex - 2)));
+                    topIndex -= 1;
+                }; break;
+                }
+            }
+        }
+        if (!stack.test(0)) {
+            for (int i = 0; i < bitToCheck; i++) {
+                if (curSet.test(i)) {
+                    cout << "!";
+                }
+                cout << "a" << i + 1 << " ";
+            }
+            cout << endl;
+        }
+        incBitSet(curSet);
+    }
 }
 
 
@@ -1219,8 +1339,9 @@ int main()
     cout << "Что вы хотите сделать?\n";
     cout << "1.Найти СКНФ\n";
     cout << "2.Найти СДНФ\n";
+    cout << "Новый алгоритм\n";
     cin >> choice;
-    while (choice != '1' && choice != '2') {
+    while (choice != '1' && choice != '2' && choice != '3') {
         cout << "Такого пункта нет. Введите 1 или 2\n";
         cin >> choice;
     }
@@ -1485,6 +1606,57 @@ int main()
             printActualAnswerSDNF(resultSKNF);
             printSDNFInFile(resultSKNF, calculate);
         }
+    }; break;
+    case '3':
+    {
+        srand(time(NULL));
+
+        int numOfMembers = -1;
+        int numOfVariables = -1;
+        int numOfNegations = -1;
+        int approxSize = -1;
+        cout << "Введите количество членов, переменных, отрицаний и приблизительное количество операторов и переменных в формуле.\n";
+        cin >> numOfMembers;
+        cin >> numOfVariables;
+        cin >> numOfNegations;
+        cin >> approxSize;
+        while (numOfMembers <= 0 || numOfVariables <= 0 || numOfNegations <= 0 || numOfNegations > numOfMembers * numOfVariables ||
+            approxSize < (2 * numOfVariables - 1) * (2 * numOfMembers - 1)) {
+            cout << "Вы ввели недопустимые данные\n";
+            cout << "Попробуйте ещё раз\n";
+            cin >> numOfMembers;
+            cin >> numOfVariables;
+            cin >> numOfNegations;
+            cin >> approxSize;
+        }
+        pair <vector<vector<string>>, string> answer = newGeneratorSKNF(numOfMembers, numOfVariables, numOfNegations, approxSize);
+        calculate = answer.second;
+        cout << "Формула сгенерирована.\n";
+        cout << "Ожидаемый ответ:\n";
+        printWantedAnswer(answer.first);
+        cout << "Проверка правильности скобочной конструкции: " << checkBraces(answer.second) << endl;
+        cout << "Вхождений операторов и переменных в формуле: " << countVarsAndOperators(answer.second) << endl;
+        cout << "Количество символов в строке: " << answer.second.size() << endl;
+        cout << "Показать формулу?(1/0)\n";
+        cin >> choice;
+        while (choice != '0' && choice != '1') {
+            cout << "Введите 1 или 0.\n";
+            cin >> choice;
+        }
+        if (choice == '1') {
+            cout << "Формула:\n";
+            cout << answer.second << endl;
+        }
+       /* cout << "Введите формулу:\n";
+        cin >> calculate;*/
+        node* root = new node;
+        cout << "Начинается поиск.\n";
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        addnode(answer.second, root);
+        cout << "Дерево построено\n";
+        newAlg(root);
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
     }; break;
     }
 
