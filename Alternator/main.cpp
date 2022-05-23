@@ -16,13 +16,21 @@
 using namespace std;
 
 
-#define MAX_VARS 12     //максимальное количество переменных в формуле. МОЖНО РЕДАКТИРОВАТЬ (C++ не имеет встроенных динамических битовых шкал, сторонние работают хуже.
+#define MAX_VARS 15     //максимальное количество переменных в формуле. МОЖНО РЕДАКТИРОВАТЬ (C++ не имеет встроенных динамических битовых шкал, сторонние работают хуже.
 //Если удастся найти хорошую реализацию динамических шкал, программа будет доработана с их использованием. Это лишь тонкость реализации.
 
+
+//Из-за того, что битовые шкалы статические, необходимо задать фиксированный размер. Эти значения можно менять, если Вам нужно больше переменных или более длинные формулы
 #define NEW_ALGO_MAX_VARS 200
 #define NEW_ALGO_STACK_LIMIT 50000
 
-int numOfVars = -1;   //хранит количество переменных в формуле
+//Флаги для выбора режима калькулятора на ОПЗ (СКНФ или СДНф)
+#define FLAG_SKNF -25 
+#define FLAG_SDNF -50
+
+
+int numOfVars = -1;   //хранит количество переменных в формуле, нужно для ограничения рабочей части битовой шкалы калькулятора ОПЗ
+
 
 //структура, определяющая узел дерева выражения
 struct node
@@ -51,7 +59,6 @@ int distToLeaf(node* node) {
     return min(node->leftWeight, node->rightWeight);
 
 }
-
 
 //Проверяет правильность скобочной конструкции
 bool checkBraces(string str) {
@@ -86,7 +93,6 @@ void removeOuterBraces(string& str) {
     str.insert(0, "(");
     str.append(")");
 }
-
 
 //вспомогательная структура для поиска наименее приоритетного оператора
 struct operators
@@ -249,6 +255,7 @@ short operands[7][2][7] = {
 //представлена двумя битовыми шкалами
 //если i-й бит в первой шкале установлен в 1, значит переменная уже внесена в комбинацию
 //вторая шкала хранит информацию о знаке переменной в бите на i-ом месте. (0 - нет отрицания, 1- есть отрицание)
+
 struct sknfMember {
     bitset <MAX_VARS> vars;    //шкала переменных
     bitset <MAX_VARS> signs;   //шкала знаков переменных
@@ -396,6 +403,7 @@ void sknfSearch(bool wantedValue, list<sknfMember>& lst, node* node) {
     }
 }
 
+//функция поиска СДНФ
 void sdnfSearch(bool wantedValue, list<sknfMember>& lst, node* node) {
 
     if (lst.size() == 0) {   //если родитель прислал пустой список (не опустошённый, а пустой изначально!) - добавить туда уже ничего нельзя. Выходим
@@ -524,6 +532,10 @@ void sdnfSearch(bool wantedValue, list<sknfMember>& lst, node* node) {
         }
     }
 }
+
+
+//-----------------ГЕНЕРАТОРЫ---------------//
+
 //считает количество вхождений в строку переменных и операторов
 int countVarsAndOperators(string str) {
     int answer = 0;
@@ -599,7 +611,6 @@ string complicateConstant(int numOfVars, int numOfVarsTotal, bool constFlag) {
     }break;
     }
 }
-
 
 //проверяет, являются ли члены СКНФ одинаковыми по составу, нужна для удаления дубликатов для вывода в качестве ожидаемого ответа
 bool areMembersEqual(vector<string> a, vector<string> b) {
@@ -805,52 +816,6 @@ pair<vector<vector<string>>, string> newGeneratorSKNF(int ceilNumOfMembers, int 
     return make_pair(standartizedSKNF, answer);
 }
 
-
-//сравнивает ожидаемый ответ и тот, который получила функция
-bool compareAnswers(list<list<short>> actualAns, vector<vector<string>> wantedAns) {
-
-    if (actualAns.size() != wantedAns.size() || (*actualAns.begin()).size() != wantedAns[0].size())
-        return false;
-    vector<vector<string>> actualAnsVector;
-
-    for (auto it1 = actualAns.begin(); it1 != actualAns.end(); it1++) {
-
-        vector<string> buf;
-        for (auto it2 = (*it1).begin(); it2 != (*it1).end(); it2++) {
-            string bufVar = "";
-            if ((*it2) < 0)
-                bufVar += "!";
-            bufVar += "a" + to_string(abs(*it2));
-            buf.push_back(bufVar);
-        }
-        actualAnsVector.push_back(buf);
-    }
-
-
-    for (int i = 0; i < actualAnsVector.size(); i++) {
-        bool found = false;
-
-        for (int j = 0; j < wantedAns.size(); j++) {
-            bool hasDiff = false;
-            for (int k = 0; k < wantedAns[j].size(); k++) {
-                if (wantedAns[j][k] != actualAnsVector[i][k]) {
-                    hasDiff = true;
-                    break;
-                }
-            }
-            if (!hasDiff) {
-                found = true;
-                break;
-            }
-
-        }
-        if (!found) {
-            return false;
-        }
-    }
-    return true;
-}
-
 //Генератор формул
 //Принимает максимальное количество членов СДНФ (могут появиться дубликаты, которые будут удалены), количество переменных, количество отрицаний в СДНФ
 //и приблизительное суммарное количество переменных и операторов
@@ -1045,6 +1010,8 @@ pair<vector<vector<string>>, string> newGeneratorSDNF(int ceilNumOfMembers, int 
     return make_pair(standartizedSDNF, answer);
 }
 
+//-----------ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (сравнение ответов, вывод на экран и в файл)______//
+
 list<list<short>> listOfBitsetsToListOfShorts(list<sknfMember> lst) {
     list<list<short>> answer;
 
@@ -1069,7 +1036,6 @@ list<list<short>> listOfBitsetsToListOfShorts(list<sknfMember> lst) {
     return answer;
 }
 
-//печатает на экран ожидаемый ответ
 void printWantedAnswer(vector<vector<string>> vec) {
     for (int i = 0; i < vec.size(); i++) {
         for (int j = 0; j < vec[i].size(); j++) {
@@ -1080,7 +1046,6 @@ void printWantedAnswer(vector<vector<string>> vec) {
     cout << endl;
 }
 
-//печатает на экран ответ, вычисленный функций поиска
 void printActualAnswerSKNF(list<sknfMember> ans) {
     for (auto it1 = ans.begin(); it1 != ans.end(); it1++) {
         
@@ -1210,6 +1175,50 @@ void printSKNFInFile(list<sknfMember> ans, string exception)
     fout.close();
 }
 
+bool compareAnswers(list<list<short>> actualAns, vector<vector<string>> wantedAns) {
+
+    if (actualAns.size() != wantedAns.size() || (*actualAns.begin()).size() != wantedAns[0].size())
+        return false;
+    vector<vector<string>> actualAnsVector;
+
+    for (auto it1 = actualAns.begin(); it1 != actualAns.end(); it1++) {
+
+        vector<string> buf;
+        for (auto it2 = (*it1).begin(); it2 != (*it1).end(); it2++) {
+            string bufVar = "";
+            if ((*it2) < 0)
+                bufVar += "!";
+            bufVar += "a" + to_string(abs(*it2));
+            buf.push_back(bufVar);
+        }
+        actualAnsVector.push_back(buf);
+    }
+
+
+    for (int i = 0; i < actualAnsVector.size(); i++) {
+        bool found = false;
+
+        for (int j = 0; j < wantedAns.size(); j++) {
+            bool hasDiff = false;
+            for (int k = 0; k < wantedAns[j].size(); k++) {
+                if (wantedAns[j][k] != actualAnsVector[i][k]) {
+                    hasDiff = true;
+                    break;
+                }
+            }
+            if (!hasDiff) {
+                found = true;
+                break;
+            }
+
+        }
+        if (!found) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool checkUserInput(string str) {
     if (!checkBraces(str))
         return false;
@@ -1221,10 +1230,75 @@ bool checkUserInput(string str) {
     }
     return true;
 }
-//////////////////
+
+void rpnPrintActualAnswer(vector<bitset<NEW_ALGO_MAX_VARS>> &vec, int flag) {
+    bool valueWithNO = 1;
+    if (flag == FLAG_SKNF) {
+        valueWithNO = 1;
+    }
+    else if (flag == FLAG_SDNF) {
+        valueWithNO = 0;
+    }
+    for (int i = 0; i < vec.size(); i++) {
+        for (int j = 0; j < numOfVars; j++) {
+            if (vec[i].test(j) == valueWithNO)
+                cout << "!";
+                cout << "a" << j + 1 << " ";
+        }
+        cout << endl;
+    }
+}
+
+void rpnPrintInFile(vector<bitset<NEW_ALGO_MAX_VARS>> &vec, string &expression, int flag) {
+    ofstream fout;
+    fout.open("SKNF.txt");
+    fout << "Используемые обозначения:\n" <<
+        "! - отрицание\n" <<
+        "+ - дизъюнкция\n" <<
+        "* - конъюнкция\n" <<
+        "> - импликация\n" <<
+        "= - эквивалентность\n" <<
+        "v - стрелка Пирса\n" <<
+        "| - штрих Шеффера\n" <<
+        "Формат названия переменных: a1, a2, ... , an\n";
+    fout << "Формула:\n";
+    for (int j = 0; j < expression.size(); ++j)
+    {
+        fout << expression[j];
+        if (j % 110 == 1 && j > 1)
+        {
+            fout << endl;
+        }
+    }
+
+    if (flag == FLAG_SKNF) {
+        fout << "\nСКНФ\n";
+    }
+    else if (flag == FLAG_SDNF) {
+        fout << "\nСДНФ\n";
+    }
+    bool valueWithNO = 1;
+    if (flag == FLAG_SKNF) {
+        valueWithNO = 1;
+    }
+    else if (flag == FLAG_SDNF) {
+        valueWithNO = 0;
+    }
+    for (int i = 0; i < vec.size(); i++) {
+        for (int j = 0; j < numOfVars; j++) {
+            if (vec[i].test(j) == valueWithNO)
+                fout << "!";
+            fout << "a" << j + 1 << " ";
+        }
+        fout << endl;
+    }
+    fout.close();
+}
+
+//------------------АЛГОРИТМ_НА_ОПЗ-----------------// 
 
 //Reverse Polish Notation - обратная польская запись
-//вектор для хранения обратной польской записи выражения, ОПЗ получим из дерева
+//вектор для хранения обратной польской записи (ОПЗ) выражения, ОПЗ получим из дерева
 vector<short> rpn;
 
 //совершает обратный обход дерева, получая ОПЗ
@@ -1249,70 +1323,82 @@ void incBitSet(bitset<NEW_ALGO_MAX_VARS> &bitset) {
     }
 }
 
-vector<bitset<NEW_ALGO_MAX_VARS>> rpnCalcutatorSKNF(node* node) {
-    int bitToCheck = numOfVars;
-    vector <bitset<NEW_ALGO_MAX_VARS>> ans;
+//функция поиска СКНФ (СДНФ)
+vector<bitset<NEW_ALGO_MAX_VARS>> rpnCalcutator(node* node, int flag) {
+    bool toFind = 0;
+    if (flag == FLAG_SDNF) {
+        toFind = 1;
+    }
+    else if (flag == FLAG_SKNF) {
+        toFind = 0;
+    }
+   
 
-    int topIndex;
+    int bitToCheck = numOfVars;   //так как битовые шкалы статические (имеют избыточный размер), ограничим используемую часть битовой шкалы нашим количеством переменных
+    vector <bitset<NEW_ALGO_MAX_VARS>> ans; //сюда поместим ответ
 
-    bitset<NEW_ALGO_MAX_VARS> curSet(0);  //шкала текущей комбинации
-    bitset<NEW_ALGO_STACK_LIMIT> stack(0);
+    bitset<NEW_ALGO_MAX_VARS> curSet(0);       //шкала текущей комбинации
+
+    bitset<NEW_ALGO_STACK_LIMIT> stack(0);     //шкала, исполняющая роль стека
+    int topIndex;  //индекс первого пустого элемента в стеке
 
     postOrderTravers(node); //найдём обратную польскую запись
 
-    while (!curSet.test(bitToCheck)) {
-        topIndex = 0;
-        for (int i = 0; i < rpn.size(); i++) {
+    while (!curSet.test(bitToCheck)) {  // если мы имеем n переменных, используются биты шкалы с номерами 0 - (n-1). Когда бит с номером n станет равным 1, все наборы из интересующих нас битов были рассмотрены
+        topIndex = 0;   //"очистим" стек. На самом деле информация о первом пустом элементе позволяет не очищать ненужные элементы стека, можно просто перезаписывать их.
+
+        for (int i = 0; i < rpn.size(); i++) {   //цикл по обратной польской записи формулы
 
             if (rpn[i] > 0) {  //если попали в переменную
-                stack.set(topIndex, curSet.test(rpn[i] - 1));   //поместим на стек её значение в текущей шкале
-                topIndex += 1;  //изменим индекс последнего элемента в стеке
-            }
-            else {
-                switch (rpn[i]) {
 
-                case -1:
+                stack.set(topIndex, curSet.test(rpn[i] - 1));   //поместим на стек её значение в текущем рассматриваемом наборе
+                topIndex += 1;  //изменим индекс вершушки стека (ведь добавили один элемент)
+            }
+            else {                 //в противном случае перед нами оператор
+                switch (rpn[i]) {
+                case -1:   //отрицание
                 {
-                    stack.set(topIndex - 1, !stack.test(topIndex - 1));
+                    //stack.set(topIndex - 1, !stack.test(topIndex - 1));
+                    stack.flip(topIndex-1);    //инвертируем последний элемент стека
                 }; break;
 
-                case -2:
+                case -2:  // конъюнкция
                 {
                     stack.set(topIndex - 2, stack.test(topIndex - 2) && stack.test(topIndex - 1));
                     topIndex -= 1;
                 }; break;
                 
-                case -3:
+                case -3: // дизъюнкция
                 {
                     stack.set(topIndex - 2, stack.test(topIndex - 2) || stack.test(topIndex - 1));
                     topIndex -= 1;
                 }; break;
 
-                case -4:
+                case -4: // XOR (исключающее ИЛИ)
                 {
                     stack.set(topIndex - 2, stack.test(topIndex - 2) ^ stack.test(topIndex - 1));
                     topIndex -= 1;
                 }; break;
 
-                case -5:
+                case -5: // импликация
                 {
                     stack.set(topIndex - 2, !stack.test(topIndex - 2) || stack.test(topIndex - 1));
                     topIndex -= 1;
                 }; break;
 
-                case -6:
+                case -6: //эквиваленция
                 {
                     stack.set(topIndex - 2, stack.test(topIndex - 2) == stack.test(topIndex - 1));
                     topIndex -= 1;
                 }; break;
 
-                case -7:
+                case -7: //штрих Шеффера (НЕ-И)
                 {
                     stack.set(topIndex - 2, !(stack.test(topIndex - 2) && stack.test(topIndex - 1)));
                     topIndex -= 1;
                 }; break;
 
-                case -8:
+                case -8: //стрелка Пирса (НЕ-ИЛИ)
                 {
                     stack.set(topIndex - 2, !(stack.test(topIndex - 2) || stack.test(topIndex - 1)));
                     topIndex -= 1;
@@ -1320,14 +1406,8 @@ vector<bitset<NEW_ALGO_MAX_VARS>> rpnCalcutatorSKNF(node* node) {
                 }
             }
         }
-        if (!stack.test(0)) {
-            /*for (int i = 0; i < bitToCheck; i++) {
-                if (curSet.test(i)) {
-                    cout << "!";
-                }
-                cout << "a" << i + 1 << " ";
-            }
-            cout << endl;*/
+
+        if (stack.test(0) == toFind) {   //если формула на данном наборе дала 0 (1) - помещаем набор в СКНФ (СДНФ)
             ans.push_back(curSet);
         }
         incBitSet(curSet);
@@ -1336,288 +1416,21 @@ vector<bitset<NEW_ALGO_MAX_VARS>> rpnCalcutatorSKNF(node* node) {
     return ans;
 }
 
-
-int main()
-{
-    string calculate;
-    list<sknfMember> resultSKNF;
+int main() {
     setlocale(LC_ALL, "ru");
-    char choice = '-';
-    cout << "Что вы хотите сделать?\n";
-    cout << "1.Найти СКНФ\n";
-    cout << "2.Найти СДНФ\n";
-    cout << "Новый алгоритм\n";
+    char choice;
+    cout << "Выберите источник входных данных:\n";
+    cout << "1.Использовать генератор;\n";
+    cout << "2.Ввести формулу с клавиатуры;\n";
     cin >> choice;
-    while (choice != '1' && choice != '2' && choice != '3') {
-        cout << "Такого пункта нет. Введите 1 или 2\n";
-        cin >> choice;
-    }
-    switch (choice) {
-    case '1':
-    {
-        cout << "1.Сгенерировать формулу при помощи генератора.\n";
-        cout << "2.Ввести формулу с клавиатуры\n";
-        cin >> choice;
-        while (choice != '1' && choice != '2') {
-            cout << "Такого пункта нет. Введите 1 или 2\n";
-            cin >> choice;
-        }
-        switch (choice) {
-        case '1':
-        {
-            srand(time(NULL));
-
-            int numOfMembers = -1;
-            int numOfVariables = -1;
-            int numOfNegations = -1;
-            int approxSize = -1;
-            cout << "Введите количество членов, переменных, отрицаний и приблизительное количество операторов и переменных в формуле.\n";
-            cin >> numOfMembers;
-            cin >> numOfVariables;
-            cin >> numOfNegations;
-            cin >> approxSize;
-            while (numOfMembers <= 0 || numOfVariables <= 0 || numOfNegations <= 0 || numOfNegations > numOfMembers * numOfVariables ||
-                approxSize < (2 * numOfVariables - 1) * (2 * numOfMembers - 1)) {
-                cout << "Вы ввели недопустимые данные\n";
-                cout << "Попробуйте ещё раз\n";
-                cin >> numOfMembers;
-                cin >> numOfVariables;
-                cin >> numOfNegations;
-                cin >> approxSize;
-            }
-            pair <vector<vector<string>>, string> answer = newGeneratorSKNF(numOfMembers, numOfVariables, numOfNegations, approxSize);
-            calculate = answer.second;
-            cout << "Формула сгенерирована.\n";
-            cout << "Ожидаемый ответ:\n";
-            printWantedAnswer(answer.first);
-            cout << "Проверка правильности скобочной конструкции: " << checkBraces(answer.second) << endl;
-            cout << "Вхождений операторов и переменных в формуле: " << countVarsAndOperators(answer.second) << endl;
-            cout << "Количество символов в строке: " << answer.second.size() << endl;
-            cout << "Показать формулу?(1/0)\n";
-            cin >> choice;
-            while (choice != '0' && choice != '1') {
-                cout << "Введите 1 или 0.\n";
-                cin >> choice;
-            }
-            if (choice == '1') {
-                cout << "Формула:\n";
-                cout << answer.second << endl;
-            }
-            resultSKNF.clear();
-            sknfMember buf;
-            buf.signs.set(0, 1);
-            resultSKNF.push_back(buf);
-
-            node* root = new node;
-            cout << "Начинается поиск.\n";
-            checkBraces(calculate);
-            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-            addnode(answer.second, root);
-            cout << "Дерево построено\n";
-            distToLeaf(root);
-            cout << "Рёбра отмечены\n";
-            sknfSearch(0, resultSKNF, root);
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
-            cout << "Равны ли ответы: " << compareAnswers(listOfBitsetsToListOfShorts(resultSKNF), answer.first) << endl;
-
-        }; break;
-        case '2':
-        {
-            cout << "Используемые обозначения:\n" <<
-                "! - отрицание\n" <<
-                "+ - дизъюнкция\n" <<
-                "* - конъюнкция\n" <<
-                "> - импликация\n" <<
-                "= - эквивалентность\n" <<
-                "v - стрелка Пирса\n" <<
-                "| - штрих Шеффера\n" <<
-                "Формат названия переменных: a1, a2, ... , an\n" <<
-                "Скобки допускаются. Отрицание может стоять как перед переменной, так и перед скобками.\n";
-            
-            cout << "Введите вашу формулу:\n";
-            cin >> calculate;
-            while (!checkUserInput(calculate)) {
-                cout << "Вы ввели некорректное выражение. Пожалуйста, проверьте его и исправьте ошибки.\n";
-                cin >> calculate;
-            }
-
-            resultSKNF.clear();
-            sknfMember buf;
-            buf.signs.set(0, 1);
-            resultSKNF.push_back(buf);
-
-            node* root = new node;
-            cout << "Начинается поиск.\n";
-            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-            addnode(calculate, root);
-            cout << "Дерево построено\n";
-            distToLeaf(root);
-            cout << "Рёбра отмечены\n";
-            sknfSearch(0, resultSKNF, root);
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
-        }; break;
-        }
-
-        //вывод ответа
-
-        cout << "Куда вывести ответ?\n" <<
-            "1.На экран\n" <<
-            "2.В файл\n" <<
-            "3.И на экран и в файл.\n";
-        cin >> choice;
-        while (choice != '1' && choice != '2' && choice != '3') {
-            cout << "Введите 1, 2 или 3.\n";
-            cin >> choice;
-        }
-        if (choice == '1') {
-            
-            printActualAnswerSKNF(resultSKNF);
-        }
-        if (choice == '2') {
-            printSKNFInFile(resultSKNF,calculate);
-        }
-
-        if (choice == '3') {
-            printActualAnswerSKNF(resultSKNF);
-            printSKNFInFile(resultSKNF, calculate);
-        }
-
-    }; break;
-    case '2':
-    {
-        cout << "1.Сгенерировать формулу при помощи генератора.\n";
-        cout << "2.Ввести формулу с клавиатуры\n";
-        cin >> choice;
-        while (choice != '1' && choice != '2') {
-            cout << "Такого пункта нет. Введите 1 или 2\n";
-            cin >> choice;
-        }
-        switch (choice) {
-        case '1':
-        {
-            srand(time(NULL));
-
-            int numOfMembers = -1;
-            int numOfVariables = -1;
-            int numOfNegations = -1;
-            int approxSize = -1;
-            cout << "Введите количество членов, переменных, отрицаний и приблизительное количество операторов и переменных в формуле.\n";
-            cin >> numOfMembers;
-            cin >> numOfVariables;
-            cin >> numOfNegations;
-            cin >> approxSize;
-            while (numOfMembers <= 0 || numOfVariables <= 0 || numOfNegations <= 0 || numOfNegations > numOfMembers * numOfVariables ||
-                approxSize < (2 * numOfVariables - 1) * (2 * numOfMembers - 1)) {
-                cout << "Вы ввели недопустимые данные\n";
-                cout << "Попробуйте ещё раз\n";
-                cin >> numOfMembers;
-                cin >> numOfVariables;
-                cin >> numOfNegations;
-                cin >> approxSize;
-            }
-            pair <vector<vector<string>>, string> answer = newGeneratorSDNF(numOfMembers, numOfVariables, numOfNegations, approxSize);
-            calculate = answer.second;
-            cout << "Формула сгенерирована.\n";
-            cout << "Ожидаемый ответ:\n";
-            printWantedAnswer(answer.first);
-            cout << "Проверка правильности скобочной конструкции: " << checkBraces(answer.second) << endl;
-            cout << "Вхождений операторов и переменных в формуле: " << countVarsAndOperators(answer.second) << endl;
-            cout << "Количество символов в строке: " << answer.second.size() << endl;
-            cout << "Показать формулу?(1/0)\n";
-            cin >> choice;
-            while (choice != '0' && choice != '1') {
-                cout << "Введите 1 или 0.\n";
-                cin >> choice;
-            }
-            if (choice == '1') {
-                cout << "Формула:\n";
-                cout << answer.second << endl;
-            }
-            resultSKNF.clear();
-            sknfMember buf;
-            buf.signs.set(0, 1);
-            resultSKNF.push_back(buf);
-
-            node* root = new node;
-            cout << "Начинается поиск.\n";
-            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-            addnode(answer.second, root);
-            cout << "Дерево построено\n";
-            distToLeaf(root);
-            cout << "Рёбра отмечены\n";
-            sdnfSearch(1, resultSKNF, root);
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
-            cout << "Равны ли ответы: " << compareAnswers(listOfBitsetsToListOfShorts(resultSKNF), answer.first) << endl;
-
-        }; break;
-        case '2':
-        {
-            cout << "Используемые обозначения:\n" <<
-                "! - отрицание\n" <<
-                "+ - дизъюнкция\n" <<
-                "* - конъюнкция\n" <<
-                "> - импликация\n" <<
-                "= - эквивалентность\n" <<
-                "v - стрелка Пирса\n" <<
-                "| - штрих Шеффера\n" <<
-                "Формат названия переменных: a1, a2, ... , an\n" <<
-                "Скобки допускаются. Отрицание может стоять как перед переменной, так и перед скобками.\n";
-           
-            cout << "Введите вашу формулу:\n";
-            cin >> calculate;
-            while (!checkUserInput(calculate)) {
-                cout << "Вы ввели некорректное выражение. Пожалуйста, проверьте его и исправьте ошибки.\n";
-                cin >> calculate;
-            }
-
-            resultSKNF.clear();
-            sknfMember buf;
-            buf.signs.set(0, 1);
-            resultSKNF.push_back(buf);
-
-            node* root = new node;
-            cout << "Начинается поиск.\n";
-            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-            addnode(calculate, root);
-            cout << "Дерево построено\n";
-            distToLeaf(root);
-            cout << "Рёбра отмечены\n";
-            sdnfSearch(1, resultSKNF, root);
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
-        }; break;
-        }
-
-        //вывод ответа
-
-        cout << "Куда вывести ответ?\n" <<
-            "1.На экран\n" <<
-            "2.В файл\n" <<
-            "3.И на экран и в файл.\n";
-        cin >> choice;
-        while (choice != '1' && choice != '2' && choice != '3') {
-            cout << "Введите 1, 2 или 3.\n";
-            cin >> choice;
-        }
-        if (choice == '1') {
-            printActualAnswerSDNF(resultSKNF);
-        }
-        if (choice == '2') {
-            printSDNFInFile(resultSKNF, calculate);
-        }
-
-        if (choice == '3') {
-            printActualAnswerSDNF(resultSKNF);
-            printSDNFInFile(resultSKNF, calculate);
-        }
-    }; break;
-    case '3':
+    while (choice != '1' && choice != '2') {
+    cout << "Такого пункта нет. Введите 1 или 2\n";
+    cin >> choice;
+    }  
+    switch (choice) {   //выбор источника ввода
+    case '1':    //используя генератор
     {
         srand(time(NULL));
-
         int numOfMembers = -1;
         int numOfVariables = -1;
         int numOfNegations = -1;
@@ -1636,49 +1449,438 @@ int main()
             cin >> numOfNegations;
             cin >> approxSize;
         }
-        pair <vector<vector<string>>, string> answer = newGeneratorSKNF(numOfMembers, numOfVariables, numOfNegations, approxSize);
-        calculate = answer.second;
-        cout << "Формула сгенерирована.\n";
-        cout << "Ожидаемый ответ:\n";
-        printWantedAnswer(answer.first);
-        cout << "Проверка правильности скобочной конструкции: " << checkBraces(answer.second) << endl;
-        cout << "Вхождений операторов и переменных в формуле: " << countVarsAndOperators(answer.second) << endl;
-        cout << "Количество символов в строке: " << answer.second.size() << endl;
-        cout << "Показать формулу?(1/0)\n";
+
+        cout << "Какую форму вы хотите найти:\n";
+        cout << "1.СКНФ;\n";
+        cout << "2.СДНФ;\n";
         cin >> choice;
-        while (choice != '0' && choice != '1') {
-            cout << "Введите 1 или 0.\n";
+        while (choice != '1' && choice != '2' && choice != '3') {
+            cout << "Такого пункта нет. Введите 1 или 2\n";
             cin >> choice;
         }
-        if (choice == '1') {
-            cout << "Формула:\n";
-            cout << answer.second << endl;
-        }
-        /*cout << "Введите формулу:\n";
-        cin >> calculate;*/
-        node* root = new node;
-        cout << "Начинается поиск.\n";
-        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-        addnode(answer.second, root);
-        cout << "Дерево построено\n";
-        vector<bitset<NEW_ALGO_MAX_VARS>> ans = rpnCalcutatorSKNF(root);
-        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
+        pair <vector<vector<string>>, string> answer;
+        switch (choice) {    //выбор формы
+        case '1':
+        {
+           answer = newGeneratorSKNF(numOfMembers, numOfVariables, numOfNegations, approxSize);
+           cout << "Формула сгенерирована.\n";
+           cout << "Ожидаемый ответ:\n";
+           printWantedAnswer(answer.first);
+           cout << "Проверка правильности скобочной конструкции: " << checkBraces(answer.second) << endl;
+           cout << "Вхождений операторов и переменных в формуле: " << countVarsAndOperators(answer.second) << endl;
+           cout << "Количество символов в строке: " << answer.second.size() << endl;
+           cout << "Показать формулу?(1/0)\n";
+           cin >> choice;
+           while (choice != '0' && choice != '1') {
+               cout << "Введите 1 или 0.\n";
+               cin >> choice;
+           }
+           if (choice == '1') {
+               cout << "Формула:\n";
+               cout << answer.second << endl;
+           }
+           cout << "Какой алгоритм использовать?\n";
+           cout << "1.Основанный на рекурсии\n";
+           cout << "2.Основанный на обратной польской записи\n";
+           cin >> choice;
+           while (choice != '1' && choice != '2' && choice != '3') {
+               cout << "Такого пункта нет. Введите 1 или 2\n";
+               cin >> choice;
+           }
+           switch (choice) { //выбор алгоритма
+           case '1':
+           {
+               list<sknfMember> resultSKNF;
+               sknfMember buf;
+               buf.signs.set(0, 1);
+               resultSKNF.push_back(buf);
+               node* root = new node;
+               cout << "Начинается поиск.\n";
+               std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+               addnode(answer.second, root);
+               cout << "Дерево построено\n";
+               distToLeaf(root);
+               cout << "Рёбра отмечены\n";
+               sknfSearch(0, resultSKNF, root);
+               std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+               cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
+               cout << "Равны ли ответы: " << compareAnswers(listOfBitsetsToListOfShorts(resultSKNF), answer.first) << endl;
+               cout << "Куда вывести ответ?\n" <<
+                   "1.На экран;\n" <<
+                   "2.В файл;\n" <<
+                   "3.На экран и в файл;\n";
+               cin >> choice;
+               while (choice != '1' && choice != '2' && choice != '3') {
+                   cout << "Введите 1, 2 или 3.\n";
+                   cin >> choice;
+               }
+               if (choice == '1') {
+                           
+                   printActualAnswerSKNF(resultSKNF);
+               }
+               if (choice == '2') {
+                   printSKNFInFile(resultSKNF,answer.second);
+               }
+               if (choice == '3') {
+                   printActualAnswerSKNF(resultSKNF);
+                   printSKNFInFile(resultSKNF, answer.second);
+               }
+           }; break;
+           case '2':
+           {
+               node* root = new node;
+               cout << "Начинается поиск.\n";
+               std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+               addnode(answer.second, root);
+               cout << "Дерево построено\n";
+               vector<bitset<NEW_ALGO_MAX_VARS>> ans = rpnCalcutator(root, FLAG_SKNF);
+               std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+               cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
+               list<list<short>> buf;
+               for (int i = 0; i < ans.size(); i++) {
+                   list<short> buf2;
+                   for (int j = 0; j < numOfVars; j++) {
+                       ans[i].test(j) ? buf2.push_back(-(j + 1)) : buf2.push_back(j + 1);
+                   }
+                   buf.push_back(buf2);
+               }
+               cout << "Равны ли ответы: ";
+               cout << compareAnswers(buf, answer.first) << endl;
+               cout << "Куда вывести ответ?\n" <<
+                   "1.На экран;\n" <<
+                   "2.В файл;\n" <<
+                   "3.На экран и в файл;\n";
+               cin >> choice;
+               while (choice != '1' && choice != '2' && choice != '3') {
+                   cout << "Введите 1, 2 или 3.\n";
+                   cin >> choice;
+               }
+               if (choice == '1') {
 
-        list<list<short>> buf;
-        for (int i = 0; i < ans.size(); i++) {
-            list<short> buf2;
-
-            for (int j = 0; j < numOfVars; j++) {
-                ans[i].test(j) ? buf2.push_back(-(j + 1)) : buf2.push_back(j + 1);
+                   rpnPrintActualAnswer(ans, FLAG_SKNF);
+               }
+               if (choice == '2') {
+                   rpnPrintInFile(ans, answer.second, FLAG_SKNF);
+               }
+               if (choice == '3') {
+                   rpnPrintActualAnswer(ans, FLAG_SKNF);
+                   rpnPrintInFile(ans, answer.second, FLAG_SKNF);
+               }
+           }; break;
+           }
+        }; break;
+        case '2':
+        {
+            answer = newGeneratorSDNF(numOfMembers, numOfVariables, numOfNegations, approxSize);
+            cout << "Формула сгенерирована.\n";
+            cout << "Ожидаемый ответ:\n";
+            printWantedAnswer(answer.first);
+            cout << "Проверка правильности скобочной конструкции: " << checkBraces(answer.second) << endl;
+            cout << "Вхождений операторов и переменных в формуле: " << countVarsAndOperators(answer.second) << endl;
+            cout << "Количество символов в строке: " << answer.second.size() << endl;
+            cout << "Показать формулу?(1/0)\n";
+            cin >> choice;
+            while (choice != '0' && choice != '1') {
+                cout << "Введите 1 или 0.\n";
+                cin >> choice;
             }
-            buf.push_back(buf2);
+            if (choice == '1') {
+                cout << "Формула:\n";
+                cout << answer.second << endl;
+            }
+
+            cout << "Какой алгоритм использовать?\n";
+            cout << "1.Основанный на рекурсии\n";
+            cout << "2.Основанный на обратной польской записи\n";
+            cin >> choice;
+            while (choice != '1' && choice != '2' && choice != '3') {
+                cout << "Такого пункта нет. Введите 1 или 2\n";
+                cin >> choice;
+            }
+
+            switch (choice) { //выбор алгоритма
+            case '1':
+            {
+                list<sknfMember> resultSDNF;
+                sknfMember buf;
+                buf.signs.set(0, 1);
+                resultSDNF.push_back(buf);
+                node* root = new node;
+                cout << "Начинается поиск.\n";
+                std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+                addnode(answer.second, root);
+                cout << "Дерево построено\n";
+                distToLeaf(root);
+                cout << "Рёбра отмечены\n";
+                sdnfSearch(1, resultSDNF, root);
+                std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+                cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
+                cout << "Равны ли ответы: " << compareAnswers(listOfBitsetsToListOfShorts(resultSDNF), answer.first) << endl;
+                cout << "Куда вывести ответ?\n" <<
+                    "1.На экран;\n" <<
+                    "2.В файл;\n" <<
+                    "3.На экран и в файл;\n";
+                cin >> choice;
+                while (choice != '1' && choice != '2' && choice != '3') {
+                    cout << "Введите 1, 2 или 3.\n";
+                    cin >> choice;
+                }
+                if (choice == '1') {
+
+                    printActualAnswerSKNF(resultSDNF);
+                }
+                if (choice == '2') {
+                    printSKNFInFile(resultSDNF, answer.second);
+                }
+                if (choice == '3') {
+                    printActualAnswerSKNF(resultSDNF);
+                    printSKNFInFile(resultSDNF, answer.second);
+                }
+            }; break;
+            case '2':
+            {
+                node* root = new node;
+                cout << "Начинается поиск.\n";
+                std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+                addnode(answer.second, root);
+                cout << "Дерево построено\n";
+                vector<bitset<NEW_ALGO_MAX_VARS>> ans = rpnCalcutator(root, FLAG_SDNF);
+                std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+                cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
+                list<list<short>> buf;
+                for (int i = 0; i < ans.size(); i++) {
+                    list<short> buf2;
+                    for (int j = 0; j < numOfVars; j++) {
+                        ans[i].test(j) ? buf2.push_back(j + 1) : buf2.push_back(-(j + 1));
+                    }
+                    buf.push_back(buf2);
+                }
+                cout << "Равны ли ответы: ";
+                cout << compareAnswers(buf, answer.first) << endl;
+                cout << "Куда вывести ответ?\n" <<
+                    "1.На экран;\n" <<
+                    "2.В файл;\n" <<
+                    "3.На экран и в файл;\n";
+                cin >> choice;
+                while (choice != '1' && choice != '2' && choice != '3') {
+                    cout << "Введите 1, 2 или 3.\n";
+                    cin >> choice;
+                }
+                if (choice == '1') {
+
+                    rpnPrintActualAnswer(ans, FLAG_SDNF);
+                }
+                if (choice == '2') {
+                    rpnPrintInFile(ans, answer.second, FLAG_SDNF);
+                }
+                if (choice == '3') {
+                    rpnPrintActualAnswer(ans, FLAG_SKNF);
+                    rpnPrintInFile(ans, answer.second, FLAG_SDNF);
+                }
+            }; break;
+            }
+        }; break;
         }
-        cout << "Равны ли ответы: ";
-        cout << compareAnswers(buf, answer.first) << endl;
+
+    }; break;
+    case '2':    //ввод с клавиатуры
+    {
+        cout << "Используемые обозначения:\n" <<
+            "! - отрицание\n" <<
+            "+ - дизъюнкция\n" <<
+            "* - конъюнкция\n" <<
+            "> - импликация\n" <<
+            "= - эквивалентность\n" <<
+            "v - стрелка Пирса\n" <<
+            "| - штрих Шеффера\n" <<
+            "Формат названия переменных: a1, a2, ... , an\n" <<
+            "Скобки допускаются. Отрицание может стоять как перед переменной, так и перед скобками.\n";
+
+        cout << "Введите вашу формулу:\n";
+        string calculate;
+        cin >> calculate;
+        while (!checkUserInput(calculate)) {
+            cout << "Вы ввели некорректное выражение. Пожалуйста, проверьте его и исправьте ошибки.\n";
+            cin >> calculate;
+        }
+
+        cout << "Какую форму вы хотите найти:\n";
+        cout << "1.СКНФ;\n";
+        cout << "2.СДНФ;\n";
+        cin >> choice;
+        while (choice != '1' && choice != '2') {
+            cout << "Такого пункта нет. Введите 1 или 2\n";
+            cin >> choice;
+        }
+        switch (choice) {  //выбор формы
+        case '1':
+        {
+            cout << "Какой алгоритм использовать?\n";
+            cout << "1.Основанный на рекурсии\n";
+            cout << "2.Основанный на обратной польской записи\n";
+            cin >> choice;
+            while (choice != '1' && choice != '2' && choice != '3') {
+                cout << "Такого пункта нет. Введите 1 или 2\n";
+                cin >> choice;
+            }
+            
+            switch (choice) {
+            case '1':
+            {
+                list<sknfMember> resultSKNF;
+                sknfMember buf;
+                buf.signs.set(0, 1);
+                resultSKNF.push_back(buf);
+                node* root = new node;
+                cout << "Начинается поиск.\n";
+                std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+                addnode(calculate, root);
+                cout << "Дерево построено\n";
+                distToLeaf(root);
+                cout << "Рёбра отмечены\n";
+                sknfSearch(0, resultSKNF, root);
+                std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+                cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
+                cout << "Куда вывести ответ?\n" <<
+                    "1.На экран;\n" <<
+                    "2.В файл;\n" <<
+                    "3.На экран и в файл;\n";
+                cin >> choice;
+                while (choice != '1' && choice != '2' && choice != '3') {
+                    cout << "Введите 1, 2 или 3.\n";
+                    cin >> choice;
+                }
+                if (choice == '1') {
+
+                    printActualAnswerSKNF(resultSKNF);
+                }
+                if (choice == '2') {
+                    printSKNFInFile(resultSKNF, calculate);
+                }
+                if (choice == '3') {
+                    printActualAnswerSKNF(resultSKNF);
+                    printSKNFInFile(resultSKNF, calculate);
+                }
+            }; break;
+            case '2':
+            {
+                node* root = new node;
+                cout << "Начинается поиск.\n";
+                std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+                addnode(calculate, root);
+                cout << "Дерево построено\n";
+                vector<bitset<NEW_ALGO_MAX_VARS>> ans = rpnCalcutator(root, FLAG_SKNF);
+                std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+                cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
+                cout << "Куда вывести ответ?\n" <<
+                    "1.На экран;\n" <<
+                    "2.В файл;\n" <<
+                    "3.На экран и в файл;\n";
+                cin >> choice;
+                while (choice != '1' && choice != '2' && choice != '3') {
+                    cout << "Введите 1, 2 или 3.\n";
+                    cin >> choice;
+                }
+                if (choice == '1') {
+
+                    rpnPrintActualAnswer(ans, FLAG_SKNF);
+                }
+                if (choice == '2') {
+                    rpnPrintInFile(ans, calculate, FLAG_SKNF);
+                }
+                if (choice == '3') {
+                    rpnPrintActualAnswer(ans, FLAG_SKNF);
+                    rpnPrintInFile(ans, calculate, FLAG_SKNF);
+                }
+            }; break;
+            }
+
+
+        }; break;
+        case '2':
+        {
+            cout << "Какой алгоритм использовать?\n";
+            cout << "1.Основанный на рекурсии\n";
+            cout << "2.Основанный на обратной польской записи\n";
+            cin >> choice;
+            while (choice != '1' && choice != '2' && choice != '3') {
+                cout << "Такого пункта нет. Введите 1 или 2\n";
+                cin >> choice;
+            }
+            switch (choice) {
+            case '1':
+            {
+                list<sknfMember> resultSDNF;
+                sknfMember buf;
+                buf.signs.set(0, 1);
+                resultSDNF.push_back(buf);
+                node* root = new node;
+                cout << "Начинается поиск.\n";
+                std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+                addnode(calculate, root);
+                cout << "Дерево построено\n";
+                distToLeaf(root);
+                cout << "Рёбра отмечены\n";
+                sdnfSearch(1, resultSDNF, root);
+                std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+                cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
+                cout << "Куда вывести ответ?\n" <<
+                    "1.На экран;\n" <<
+                    "2.В файл;\n" <<
+                    "3.На экран и в файл;\n";
+                cin >> choice;
+                while (choice != '1' && choice != '2' && choice != '3') {
+                    cout << "Введите 1, 2 или 3.\n";
+                    cin >> choice;
+                }
+                if (choice == '1') {
+
+                    printActualAnswerSKNF(resultSDNF);
+                }
+                if (choice == '2') {
+                    printSKNFInFile(resultSDNF, calculate);
+                }
+                if (choice == '3') {
+                    printActualAnswerSKNF(resultSDNF);
+                    printSKNFInFile(resultSDNF, calculate);
+                }
+            }; break;
+            case '2':
+            {
+                node* root = new node;
+                cout << "Начинается поиск.\n";
+                std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+                addnode(calculate, root);
+                cout << "Дерево построено\n";
+                vector<bitset<NEW_ALGO_MAX_VARS>> ans = rpnCalcutator(root, FLAG_SDNF);
+                std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+                cout << "Поиск завершён. Затрачено времени: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " секунд" << std::endl;
+                cout << "Куда вывести ответ?\n" <<
+                    "1.На экран;\n" <<
+                    "2.В файл;\n" <<
+                    "3.На экран и в файл;\n";
+                cin >> choice;
+                while (choice != '1' && choice != '2' && choice != '3') {
+                    cout << "Введите 1, 2 или 3.\n";
+                    cin >> choice;
+                }
+                if (choice == '1') {
+
+                    rpnPrintActualAnswer(ans, FLAG_SDNF);
+                }
+                if (choice == '2') {
+                    rpnPrintInFile(ans, calculate, FLAG_SDNF);
+                }
+                if (choice == '3') {
+                    rpnPrintActualAnswer(ans, FLAG_SKNF);
+                    rpnPrintInFile(ans, calculate, FLAG_SDNF);
+                }
+            }; break;
+            }
+        }; break;
+        }
     }; break;
     }
-
-    cout << "Программа завершена.\n";
+    cout << "Работа программы завершена.\n";
     return 0;
 }
