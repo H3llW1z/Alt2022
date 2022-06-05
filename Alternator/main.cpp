@@ -1416,12 +1416,18 @@ vector<bitset<NEW_ALGO_MAX_VARS>> rpnCalcutator(node* node, int flag) {
     return ans;
 }
 
+void printAnswerHint() {
+    cout << "\nО выводе ответа:\n" <<
+        "Каждая строка ответа - один член СКНФ (СДНФ)\n" <<
+        "Знаки между членами и переменными опущены для упрощения чтения.\nЕсли ищем СКНФ, то между переменными дизъюнкция (+), между членами - конъюнкция (*).\nЕсли ищем СДНФ - наоборот.\n";
+}
 int main() {
     setlocale(LC_ALL, "ru");
     char choice;
     cout << "Выберите источник входных данных:\n";
     cout << "1.Использовать генератор;\n";
     cout << "2.Ввести формулу с клавиатуры;\n";
+    printAnswerHint();
     cin >> choice;
     while (choice != '1' && choice != '2') {
     cout << "Такого пункта нет. Введите 1 или 2\n";
@@ -1435,20 +1441,39 @@ int main() {
         int numOfVariables = -1;
         int numOfNegations = -1;
         int approxSize = -1;
-        cout << "Введите количество членов, переменных, отрицаний и приблизительное количество операторов и переменных в формуле.\n";
-        cin >> numOfMembers;
-        cin >> numOfVariables;
-        cin >> numOfNegations;
-        cin >> approxSize;
-        while (numOfMembers <= 0 || numOfVariables <= 0 || numOfNegations <= 0 || numOfNegations > numOfMembers * numOfVariables ||
-            approxSize < (2 * numOfVariables - 1) * (2 * numOfMembers - 1)) {
-            cout << "Вы ввели недопустимые данные\n";
-            cout << "Попробуйте ещё раз\n";
+        bool everythingFine = true;
+
+        cout << "Введите параметры формулы:\n" <<
+            "1.К-во членов* СДНФ (СДНФ);\n" <<
+            "2.К-во уникальных переменных в формуле;\n" <<
+            "3.К-во отрицаний у переменных в итоговой СДНФ (СКНФ);\n" <<
+            "4.Примерное количество вхождений переменных и операторов в формулу (их сумма).\n" <<
+            "* - при генерации могут возникнуть одинаковые комбинации. Дубликаты существующих комбинаций будут удалены перед показом ожидаемого ответа.\n" <<
+            "Формат ввода: <к-во членов> <к-во переменных> <к-во отрицаний> <желаемое к-во переменных и операторов>\n";
+
+        do {
             cin >> numOfMembers;
             cin >> numOfVariables;
             cin >> numOfNegations;
             cin >> approxSize;
-        }
+
+            if (numOfMembers <= 0 || numOfVariables <=0 || numOfNegations <=0 || approxSize <= 0) {
+                cout << "Ни один из параметров не может быть отрицательным или равняться нулю.\n";
+                everythingFine = false;
+            }
+            else if (numOfNegations > numOfMembers * numOfVariables) {
+                cout << "Количество отрицаний привышает допустимое. Отрицаний в СКНФ (СДНФ) не может быть больше, чем (к-во переменных)*(к-во членов)\n";
+                everythingFine = false;
+            }
+            else if (approxSize < (2 * numOfVariables - 1) * (2 * numOfMembers - 1)) {
+                cout << "Желаемое к-во переменных и опеаторов в формуле меньше допустимого в данном случае. Генератор усложняет СКНФ (СДНФ). Её длина - минимальная допустимая.\n" <<
+                    "Формула, по которой выполняется проверка: (2 * <к-во переменных> - 1)*(2 * <к-во членов> - 1)\n";
+                everythingFine = false;
+            }
+            if (!everythingFine) {
+                cout << "Пожалуйста, повторите ввод.\n";
+            }
+        } while (!everythingFine);
 
         cout << "Какую форму вы хотите найти:\n";
         cout << "1.СКНФ;\n";
@@ -1515,7 +1540,6 @@ int main() {
                    cin >> choice;
                }
                if (choice == '1') {
-                           
                    printActualAnswerSKNF(resultSKNF);
                }
                if (choice == '2') {
@@ -1556,7 +1580,6 @@ int main() {
                    cin >> choice;
                }
                if (choice == '1') {
-
                    rpnPrintActualAnswer(ans, FLAG_SKNF);
                }
                if (choice == '2') {
@@ -1667,7 +1690,6 @@ int main() {
                     cin >> choice;
                 }
                 if (choice == '1') {
-
                     rpnPrintActualAnswer(ans, FLAG_SDNF);
                 }
                 if (choice == '2') {
@@ -1751,7 +1773,6 @@ int main() {
                     cin >> choice;
                 }
                 if (choice == '1') {
-
                     printActualAnswerSKNF(resultSKNF);
                 }
                 if (choice == '2') {
@@ -1782,7 +1803,6 @@ int main() {
                     cin >> choice;
                 }
                 if (choice == '1') {
-
                     rpnPrintActualAnswer(ans, FLAG_SKNF);
                 }
                 if (choice == '2') {
@@ -1834,7 +1854,6 @@ int main() {
                     cin >> choice;
                 }
                 if (choice == '1') {
-
                     printActualAnswerSKNF(resultSDNF);
                 }
                 if (choice == '2') {
@@ -1865,7 +1884,6 @@ int main() {
                     cin >> choice;
                 }
                 if (choice == '1') {
-
                     rpnPrintActualAnswer(ans, FLAG_SDNF);
                 }
                 if (choice == '2') {
