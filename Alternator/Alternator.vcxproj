@@ -139,7 +139,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="expressionFunctions.cpp" />
+    <ClCompile Include="generators.cpp" />
+    <ClCompile Include="helperFunctions.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="OPZalgorithm.cpp" />
+    <ClCompile Include="sknfSdnfMembers.cpp" />
+    <ClCompile Include="tree.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="expressionFunctions.h" />
+    <ClInclude Include="generators.h" />
+    <ClInclude Include="helperFunctions.h" />
+    <ClInclude Include="main.h" />
+    <ClInclude Include="OPZalgorithm.h" />
+    <ClInclude Include="sknfSdnfMembers.h" />
+    <ClInclude Include="tree.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
