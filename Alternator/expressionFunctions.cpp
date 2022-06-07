@@ -1,7 +1,7 @@
 //Проверяет правильность скобочной конструкции
 
 #include "expressionFunctions.h"
-extern int numOfVars;
+extern int numOfVars; 
 bool checkBraces(string str) {
     int braceCounter = 0;
     for (int i = 0; i <= str.size() - 1; i++) {
