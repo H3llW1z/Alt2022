@@ -1,6 +1,6 @@
 #include "generators.h"
 extern int numOfVars;
-//считает количество вхождений в строку переменных и операторов 
+//СЃС‡РёС‚Р°РµС‚ РєРѕР»РёС‡РµСЃС‚РІРѕ РІС…РѕР¶РґРµРЅРёР№ РІ СЃС‚СЂРѕРєСѓ РїРµСЂРµРјРµРЅРЅС‹С… Рё РѕРїРµСЂР°С‚РѕСЂРѕРІ 
 int countVarsAndOperators(string str) {
     int answer = 0;
     for (int i = 0; i < str.size(); i++) {
@@ -16,19 +16,19 @@ string complicateConstant(int numOfVars, int numOfVarsTotal, bool constFlag) {
 
     switch (numOfVars) {
     case 3: {
-        //заранее подготовленные комбинации, дающие 0 при всех наборах
+        //Р·Р°СЂР°РЅРµРµ РїРѕРґРіРѕС‚РѕРІР»РµРЅРЅС‹Рµ РєРѕРјР±РёРЅР°С†РёРё, РґР°СЋС‰РёРµ 0 РїСЂРё РІСЃРµС… РЅР°Р±РѕСЂР°С…
         string variantsList[4] = { "(!(1^((!2+3)*!2+1)>3)*3)", "(!(((3+2*1)^!(3+2*1))>!(3*!2*2)))", "((((2+!1)*!3)v3)*!1)", "(!3*!(2+!(1+!3|1)|!(3^2))*!1)" };
 
-        //подберём 3 случайные переменные из доступных
+        //РїРѕРґР±РµСЂС‘Рј 3 СЃР»СѓС‡Р°Р№РЅС‹Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ РёР· РґРѕСЃС‚СѓРїРЅС‹С…
         string var1 = "a" + to_string(rand() % numOfVarsTotal + 1);
         string var2 = "a" + to_string(rand() % numOfVarsTotal + 1);
         string var3 = "a" + to_string(rand() % numOfVarsTotal + 1);
 
-        //выберем случайно одну из формул усложнения
+        //РІС‹Р±РµСЂРµРј СЃР»СѓС‡Р°Р№РЅРѕ РѕРґРЅСѓ РёР· С„РѕСЂРјСѓР» СѓСЃР»РѕР¶РЅРµРЅРёСЏ
         int variant = rand() % 4;
 
         string buf = variantsList[variant];
-        for (int i = 0; i < buf.size(); i++) {   //и заменим шаблонные переменные на настоящие 
+        for (int i = 0; i < buf.size(); i++) {   //Рё Р·Р°РјРµРЅРёРј С€Р°Р±Р»РѕРЅРЅС‹Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ РЅР° РЅР°СЃС‚РѕСЏС‰РёРµ 
             if (buf[i] > 48 && buf[i] < 58) {
                 switch (buf[i]) {
                 case '1': answer.append(var1); break;
@@ -40,7 +40,7 @@ string complicateConstant(int numOfVars, int numOfVarsTotal, bool constFlag) {
             answer.append(string(1, buf[i]));
         }
 
-        if (constFlag) {    //если нужна тождественная единица, навесим отрицание
+        if (constFlag) {    //РµСЃР»Рё РЅСѓР¶РЅР° С‚РѕР¶РґРµСЃС‚РІРµРЅРЅР°СЏ РµРґРёРЅРёС†Р°, РЅР°РІРµСЃРёРј РѕС‚СЂРёС†Р°РЅРёРµ
             answer = "!" + answer;
         }
         return answer;
@@ -75,7 +75,7 @@ string complicateConstant(int numOfVars, int numOfVarsTotal, bool constFlag) {
     }
 }
 
-//проверяет, являются ли члены СКНФ одинаковыми по составу, нужна для удаления дубликатов для вывода в качестве ожидаемого ответа
+//РїСЂРѕРІРµСЂСЏРµС‚, СЏРІР»СЏСЋС‚СЃСЏ Р»Рё С‡Р»РµРЅС‹ РЎРљРќР¤ РѕРґРёРЅР°РєРѕРІС‹РјРё РїРѕ СЃРѕСЃС‚Р°РІСѓ, РЅСѓР¶РЅР° РґР»СЏ СѓРґР°Р»РµРЅРёСЏ РґСѓР±Р»РёРєР°С‚РѕРІ РґР»СЏ РІС‹РІРѕРґР° РІ РєР°С‡РµСЃС‚РІРµ РѕР¶РёРґР°РµРјРѕРіРѕ РѕС‚РІРµС‚Р°
 bool areMembersEqual(vector<string> a, vector<string> b) {
     bool answer = true;
     int memberLength = a.size();
@@ -87,28 +87,28 @@ bool areMembersEqual(vector<string> a, vector<string> b) {
     return answer;
 }
 
-//Генератор формул
-//Принимает максимальное количество членов СКНФ (могут появиться дубликаты, которые будут удалены), количество переменных, количество отрицаний в СКНФ
-//и приблизительное суммарное количество переменных и операторов
+//Р“РµРЅРµСЂР°С‚РѕСЂ С„РѕСЂРјСѓР»
+//РџСЂРёРЅРёРјР°РµС‚ РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ С‡Р»РµРЅРѕРІ РЎРљРќР¤ (РјРѕРіСѓС‚ РїРѕСЏРІРёС‚СЊСЃСЏ РґСѓР±Р»РёРєР°С‚С‹, РєРѕС‚РѕСЂС‹Рµ Р±СѓРґСѓС‚ СѓРґР°Р»РµРЅС‹), РєРѕР»РёС‡РµСЃС‚РІРѕ РїРµСЂРµРјРµРЅРЅС‹С…, РєРѕР»РёС‡РµСЃС‚РІРѕ РѕС‚СЂРёС†Р°РЅРёР№ РІ РЎРљРќР¤
+//Рё РїСЂРёР±Р»РёР·РёС‚РµР»СЊРЅРѕРµ СЃСѓРјРјР°СЂРЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РїРµСЂРµРјРµРЅРЅС‹С… Рё РѕРїРµСЂР°С‚РѕСЂРѕРІ
 
 pair<vector<vector<string>>, string> newGeneratorSKNF(int ceilNumOfMembers, int numOfVars, int numOfNegations, int approxSize) {
-    //проверки перед генерацией
-    if (ceilNumOfMembers > pow(2, numOfVars)) {  //нельзя создать больше членов, чем возможно при таком количестве переменных
+    //РїСЂРѕРІРµСЂРєРё РїРµСЂРµРґ РіРµРЅРµСЂР°С†РёРµР№
+    if (ceilNumOfMembers > pow(2, numOfVars)) {  //РЅРµР»СЊР·СЏ СЃРѕР·РґР°С‚СЊ Р±РѕР»СЊС€Рµ С‡Р»РµРЅРѕРІ, С‡РµРј РІРѕР·РјРѕР¶РЅРѕ РїСЂРё С‚Р°РєРѕРј РєРѕР»РёС‡РµСЃС‚РІРµ РїРµСЂРµРјРµРЅРЅС‹С…
         throw invalid_argument("Number of members bigger than possible");
     }
 
-    if (numOfNegations > ceilNumOfMembers * numOfVars) {    //нельзя вставить больше отрицаний, чем всего вхождений переменных в СКНФ
+    if (numOfNegations > ceilNumOfMembers * numOfVars) {    //РЅРµР»СЊР·СЏ РІСЃС‚Р°РІРёС‚СЊ Р±РѕР»СЊС€Рµ РѕС‚СЂРёС†Р°РЅРёР№, С‡РµРј РІСЃРµРіРѕ РІС…РѕР¶РґРµРЅРёР№ РїРµСЂРµРјРµРЅРЅС‹С… РІ РЎРљРќР¤
         throw invalid_argument("Number of negations can't be bigger than summary number of variables in PCNF");
     }
 
-    if (approxSize < (2 * ceilNumOfMembers - 1) * (2 * numOfVars - 1)) {   //нельзя просить длину меньше самой СКНФ
+    if (approxSize < (2 * ceilNumOfMembers - 1) * (2 * numOfVars - 1)) {   //РЅРµР»СЊР·СЏ РїСЂРѕСЃРёС‚СЊ РґР»РёРЅСѓ РјРµРЅСЊС€Рµ СЃР°РјРѕР№ РЎРљРќР¤
         throw invalid_argument("Too short approxSize");
     }
 
 
-    vector<vector<string>> sknf;    //в этот вектор поместим будущую скнф
+    vector<vector<string>> sknf;    //РІ СЌС‚РѕС‚ РІРµРєС‚РѕСЂ РїРѕРјРµСЃС‚РёРј Р±СѓРґСѓС‰СѓСЋ СЃРєРЅС„
 
-    int negationsSet = 0;    //количество уже установленных знаков отрицания
+    int negationsSet = 0;    //РєРѕР»РёС‡РµСЃС‚РІРѕ СѓР¶Рµ СѓСЃС‚Р°РЅРѕРІР»РµРЅРЅС‹С… Р·РЅР°РєРѕРІ РѕС‚СЂРёС†Р°РЅРёСЏ
 
 
     for (int i = 0; i < ceilNumOfMembers; i++) {
@@ -125,7 +125,7 @@ pair<vector<vector<string>>, string> newGeneratorSKNF(int ceilNumOfMembers, int 
         sknf.push_back(member);
     }
 
-    while (negationsSet < numOfNegations) {    //если установлено недостаточно отрицаний - добавим пока не наберём
+    while (negationsSet < numOfNegations) {    //РµСЃР»Рё СѓСЃС‚Р°РЅРѕРІР»РµРЅРѕ РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РѕС‚СЂРёС†Р°РЅРёР№ - РґРѕР±Р°РІРёРј РїРѕРєР° РЅРµ РЅР°Р±РµСЂС‘Рј
         bool isReady = false;
 
         for (int i = 0; i < sknf.size(); i++) {
@@ -146,7 +146,7 @@ pair<vector<vector<string>>, string> newGeneratorSKNF(int ceilNumOfMembers, int 
     }
 
 
-    //теперь нужно удалить все дубликаты из скнф чтобы предоставить её на выход. А использовать далее можно и с дубликатами
+    //С‚РµРїРµСЂСЊ РЅСѓР¶РЅРѕ СѓРґР°Р»РёС‚СЊ РІСЃРµ РґСѓР±Р»РёРєР°С‚С‹ РёР· СЃРєРЅС„ С‡С‚РѕР±С‹ РїСЂРµРґРѕСЃС‚Р°РІРёС‚СЊ РµС‘ РЅР° РІС‹С…РѕРґ. Рђ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РґР°Р»РµРµ РјРѕР¶РЅРѕ Рё СЃ РґСѓР±Р»РёРєР°С‚Р°РјРё
     vector<vector<string>> standartizedSKNF;
 
     for (int i = 0; i < sknf.size(); i++) {
@@ -161,24 +161,24 @@ pair<vector<vector<string>>, string> newGeneratorSKNF(int ceilNumOfMembers, int 
         }
     }
 
-    //такое количество переменных и операторов нужно докинуть,отнимем то, что уже занимает сама СНКФ.
+    //С‚Р°РєРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РїРµСЂРµРјРµРЅРЅС‹С… Рё РѕРїРµСЂР°С‚РѕСЂРѕРІ РЅСѓР¶РЅРѕ РґРѕРєРёРЅСѓС‚СЊ,РѕС‚РЅРёРјРµРј С‚Рѕ, С‡С‚Рѕ СѓР¶Рµ Р·Р°РЅРёРјР°РµС‚ СЃР°РјР° РЎРќРљР¤.
     int needToAdd = approxSize - (2 * numOfVars - 1) * (2 * ceilNumOfMembers - 1) - negationsSet;
 
-    //Это можно в принципе менять. Это распределение ожидаемого увеличения длины на каждом уровне.
+    //Р­С‚Рѕ РјРѕР¶РЅРѕ РІ РїСЂРёРЅС†РёРїРµ РјРµРЅСЏС‚СЊ. Р­С‚Рѕ СЂР°СЃРїСЂРµРґРµР»РµРЅРёРµ РѕР¶РёРґР°РµРјРѕРіРѕ СѓРІРµР»РёС‡РµРЅРёСЏ РґР»РёРЅС‹ РЅР° РєР°Р¶РґРѕРј СѓСЂРѕРІРЅРµ.
     int onVarLevel = needToAdd / 4;
     int onMemberLevel = onVarLevel;
     int onFormulaLevel = needToAdd / 2;
 
-    //усложнение на уровне переменных. К переменным добавляем формулы, являющиеся тождественными нулями или единицами. (x=x*1 or x=x+0)
+    //СѓСЃР»РѕР¶РЅРµРЅРёРµ РЅР° СѓСЂРѕРІРЅРµ РїРµСЂРµРјРµРЅРЅС‹С…. Рљ РїРµСЂРµРјРµРЅРЅС‹Рј РґРѕР±Р°РІР»СЏРµРј С„РѕСЂРјСѓР»С‹, СЏРІР»СЏСЋС‰РёРµСЃСЏ С‚РѕР¶РґРµСЃС‚РІРµРЅРЅС‹РјРё РЅСѓР»СЏРјРё РёР»Рё РµРґРёРЅРёС†Р°РјРё. (x=x*1 or x=x+0)
 
-    int perMember = onVarLevel / ceilNumOfMembers;  // такое колчество должен набрать каждый член в среднем
+    int perMember = onVarLevel / ceilNumOfMembers;  // С‚Р°РєРѕРµ РєРѕР»С‡РµСЃС‚РІРѕ РґРѕР»Р¶РµРЅ РЅР°Р±СЂР°С‚СЊ РєР°Р¶РґС‹Р№ С‡Р»РµРЅ РІ СЃСЂРµРґРЅРµРј
 
     for (int i = 0; i < sknf.size(); i++) {
 
         string ans;
-        int toAdd = perMember;   //оставшееся количество символов, которое нужно набрать
+        int toAdd = perMember;   //РѕСЃС‚Р°РІС€РµРµСЃСЏ РєРѕР»РёС‡РµСЃС‚РІРѕ СЃРёРјРІРѕР»РѕРІ, РєРѕС‚РѕСЂРѕРµ РЅСѓР¶РЅРѕ РЅР°Р±СЂР°С‚СЊ
 
-        while (toAdd > perMember / 10) {   //пока не набрали хотя бы 90% от нужного, продолжаем
+        while (toAdd > perMember / 10) {   //РїРѕРєР° РЅРµ РЅР°Р±СЂР°Р»Рё С…РѕС‚СЏ Р±С‹ 90% РѕС‚ РЅСѓР¶РЅРѕРіРѕ, РїСЂРѕРґРѕР»Р¶Р°РµРј
 
             for (int j = 0; j < sknf[i].size(); j++) {
 
@@ -208,13 +208,13 @@ pair<vector<vector<string>>, string> newGeneratorSKNF(int ceilNumOfMembers, int 
     }
 
 
-    //теперь проведём усложнение на уровне члена СКНФ. Будем запутывать переменные.
+    //С‚РµРїРµСЂСЊ РїСЂРѕРІРµРґС‘Рј СѓСЃР»РѕР¶РЅРµРЅРёРµ РЅР° СѓСЂРѕРІРЅРµ С‡Р»РµРЅР° РЎРљРќР¤. Р‘СѓРґРµРј Р·Р°РїСѓС‚С‹РІР°С‚СЊ РїРµСЂРµРјРµРЅРЅС‹Рµ.
 
-    //генератор случайных чисел, нужен для перемешивания элементов между собой
+    //РіРµРЅРµСЂР°С‚РѕСЂ СЃР»СѓС‡Р°Р№РЅС‹С… С‡РёСЃРµР», РЅСѓР¶РµРЅ РґР»СЏ РїРµСЂРµРјРµС€РёРІР°РЅРёСЏ СЌР»РµРјРµРЅС‚РѕРІ РјРµР¶РґСѓ СЃРѕР±РѕР№
     random_device rd;
     default_random_engine rng(rd());
 
-    int onLevel2 = onMemberLevel / ceilNumOfMembers;    //столько должнен набрать каждый член СКНФ
+    int onLevel2 = onMemberLevel / ceilNumOfMembers;    //СЃС‚РѕР»СЊРєРѕ РґРѕР»Р¶РЅРµРЅ РЅР°Р±СЂР°С‚СЊ РєР°Р¶РґС‹Р№ С‡Р»РµРЅ РЎРљРќР¤
 
     for (int i = 0; i < sknf.size(); i++) {
 
@@ -223,12 +223,12 @@ pair<vector<vector<string>>, string> newGeneratorSKNF(int ceilNumOfMembers, int 
 
         while (toAdd > onLevel2 / 10 && sknf[i].size() != 1) {
 
-            shuffle(sknf[i].begin(), sknf[i].end(), rng);   //запутаем элементы между собой
+            shuffle(sknf[i].begin(), sknf[i].end(), rng);   //Р·Р°РїСѓС‚Р°РµРј СЌР»РµРјРµРЅС‚С‹ РјРµР¶РґСѓ СЃРѕР±РѕР№
 
             string newMember;
             int lastIndex = sknf[i].size() - 1;
 
-            //Применяется равенство x+y=x^y^x*y 
+            //РџСЂРёРјРµРЅСЏРµС‚СЃСЏ СЂР°РІРµРЅСЃС‚РІРѕ x+y=x^y^x*y 
 
             newMember = "(" + sknf[i][0] + "^" + sknf[i][lastIndex] + "^" + sknf[i][0] + "*" + sknf[i][lastIndex] + ")";
             toAdd -= countVarsAndOperators(sknf[i][0]) + countVarsAndOperators(sknf[i][lastIndex]) + 3;
@@ -238,7 +238,7 @@ pair<vector<vector<string>>, string> newGeneratorSKNF(int ceilNumOfMembers, int 
         }
     }
 
-    //теперь усложнённые члены соединим в строки
+    //С‚РµРїРµСЂСЊ СѓСЃР»РѕР¶РЅС‘РЅРЅС‹Рµ С‡Р»РµРЅС‹ СЃРѕРµРґРёРЅРёРј РІ СЃС‚СЂРѕРєРё
     vector <string> compMembSKNF;
     for (int i = 0; i < sknf.size(); i++) {
         string buf = "(";
@@ -251,11 +251,11 @@ pair<vector<vector<string>>, string> newGeneratorSKNF(int ceilNumOfMembers, int 
     }
 
 
-    //теперь проведём усложнение на уровне формулы, запутывая члены СКНФ. Между членами стоит *
+    //С‚РµРїРµСЂСЊ РїСЂРѕРІРµРґС‘Рј СѓСЃР»РѕР¶РЅРµРЅРёРµ РЅР° СѓСЂРѕРІРЅРµ С„РѕСЂРјСѓР»С‹, Р·Р°РїСѓС‚С‹РІР°СЏ С‡Р»РµРЅС‹ РЎРљРќР¤. РњРµР¶РґСѓ С‡Р»РµРЅР°РјРё СЃС‚РѕРёС‚ *
 
-    int toAdd = onFormulaLevel;  //осталось добрать
+    int toAdd = onFormulaLevel;  //РѕСЃС‚Р°Р»РѕСЃСЊ РґРѕР±СЂР°С‚СЊ
 
-    //тут используется равенство x*y = (x+y)*(!x+y)*(x+!y)
+    //С‚СѓС‚ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ СЂР°РІРµРЅСЃС‚РІРѕ x*y = (x+y)*(!x+y)*(x+!y)
     while (toAdd > onFormulaLevel / 10 && compMembSKNF.size() != 1) {
         shuffle(compMembSKNF.begin(), compMembSKNF.end(), rng);
         string buf;
@@ -267,7 +267,7 @@ pair<vector<vector<string>>, string> newGeneratorSKNF(int ceilNumOfMembers, int 
         compMembSKNF.push_back(buf);
     }
 
-    //наконец, соединим всё в одну строку
+    //РЅР°РєРѕРЅРµС†, СЃРѕРµРґРёРЅРёРј РІСЃС‘ РІ РѕРґРЅСѓ СЃС‚СЂРѕРєСѓ
     string answer;
 
     for (int i = 0; i < compMembSKNF.size(); i++) {
@@ -279,27 +279,27 @@ pair<vector<vector<string>>, string> newGeneratorSKNF(int ceilNumOfMembers, int 
     return make_pair(standartizedSKNF, answer);
 }
 
-//Генератор формул
-//Принимает максимальное количество членов СДНФ (могут появиться дубликаты, которые будут удалены), количество переменных, количество отрицаний в СДНФ
-//и приблизительное суммарное количество переменных и операторов
+//Р“РµРЅРµСЂР°С‚РѕСЂ С„РѕСЂРјСѓР»
+//РџСЂРёРЅРёРјР°РµС‚ РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ С‡Р»РµРЅРѕРІ РЎР”РќР¤ (РјРѕРіСѓС‚ РїРѕСЏРІРёС‚СЊСЃСЏ РґСѓР±Р»РёРєР°С‚С‹, РєРѕС‚РѕСЂС‹Рµ Р±СѓРґСѓС‚ СѓРґР°Р»РµРЅС‹), РєРѕР»РёС‡РµСЃС‚РІРѕ РїРµСЂРµРјРµРЅРЅС‹С…, РєРѕР»РёС‡РµСЃС‚РІРѕ РѕС‚СЂРёС†Р°РЅРёР№ РІ РЎР”РќР¤
+//Рё РїСЂРёР±Р»РёР·РёС‚РµР»СЊРЅРѕРµ СЃСѓРјРјР°СЂРЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РїРµСЂРµРјРµРЅРЅС‹С… Рё РѕРїРµСЂР°С‚РѕСЂРѕРІ
 pair<vector<vector<string>>, string> newGeneratorSDNF(int ceilNumOfMembers, int numOfVars, int numOfNegations, int approxSize) {
-    //проверки перед генерацией
-    if (ceilNumOfMembers > pow(2, numOfVars)) {  //нельзя создать больше членов, чем возможно при таком количестве переменных
+    //РїСЂРѕРІРµСЂРєРё РїРµСЂРµРґ РіРµРЅРµСЂР°С†РёРµР№
+    if (ceilNumOfMembers > pow(2, numOfVars)) {  //РЅРµР»СЊР·СЏ СЃРѕР·РґР°С‚СЊ Р±РѕР»СЊС€Рµ С‡Р»РµРЅРѕРІ, С‡РµРј РІРѕР·РјРѕР¶РЅРѕ РїСЂРё С‚Р°РєРѕРј РєРѕР»РёС‡РµСЃС‚РІРµ РїРµСЂРµРјРµРЅРЅС‹С…
         throw invalid_argument("Number of members bigger than possible");
     }
 
-    if (numOfNegations > ceilNumOfMembers * numOfVars) {    //нельзя вставить больше отрицаний, чем всего вхождений переменных в СКНФ
+    if (numOfNegations > ceilNumOfMembers * numOfVars) {    //РЅРµР»СЊР·СЏ РІСЃС‚Р°РІРёС‚СЊ Р±РѕР»СЊС€Рµ РѕС‚СЂРёС†Р°РЅРёР№, С‡РµРј РІСЃРµРіРѕ РІС…РѕР¶РґРµРЅРёР№ РїРµСЂРµРјРµРЅРЅС‹С… РІ РЎРљРќР¤
         throw invalid_argument("Number of negations can't be bigger than summary number of variables in PCNF");
     }
 
-    if (approxSize < (2 * ceilNumOfMembers - 1) * (2 * numOfVars - 1)) {   //нельзя просить длину меньше самой СКНФ
+    if (approxSize < (2 * ceilNumOfMembers - 1) * (2 * numOfVars - 1)) {   //РЅРµР»СЊР·СЏ РїСЂРѕСЃРёС‚СЊ РґР»РёРЅСѓ РјРµРЅСЊС€Рµ СЃР°РјРѕР№ РЎРљРќР¤
         throw invalid_argument("Too short approxSize");
     }
 
 
-    vector<vector<string>> sdnf;    //в этот вектор поместим будущую скнф
+    vector<vector<string>> sdnf;    //РІ СЌС‚РѕС‚ РІРµРєС‚РѕСЂ РїРѕРјРµСЃС‚РёРј Р±СѓРґСѓС‰СѓСЋ СЃРєРЅС„
 
-    int negationsSet = 0;    //количество уже установленных знаков отрицания
+    int negationsSet = 0;    //РєРѕР»РёС‡РµСЃС‚РІРѕ СѓР¶Рµ СѓСЃС‚Р°РЅРѕРІР»РµРЅРЅС‹С… Р·РЅР°РєРѕРІ РѕС‚СЂРёС†Р°РЅРёСЏ
     
 
 
@@ -317,7 +317,7 @@ pair<vector<vector<string>>, string> newGeneratorSDNF(int ceilNumOfMembers, int 
         sdnf.push_back(member);
     }
 
-    while (negationsSet < numOfNegations) {    //если установлено недостаточно отрицаний - добавим пока не наберём
+    while (negationsSet < numOfNegations) {    //РµСЃР»Рё СѓСЃС‚Р°РЅРѕРІР»РµРЅРѕ РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РѕС‚СЂРёС†Р°РЅРёР№ - РґРѕР±Р°РІРёРј РїРѕРєР° РЅРµ РЅР°Р±РµСЂС‘Рј
         bool isReady = false;
 
         for (int i = 0; i < sdnf.size(); i++) {
@@ -338,7 +338,7 @@ pair<vector<vector<string>>, string> newGeneratorSDNF(int ceilNumOfMembers, int 
     }
 
 
-    //теперь нужно удалить все дубликаты из скнф чтобы предоставить её на выход. А использовать далее можно и с дубликатами
+    //С‚РµРїРµСЂСЊ РЅСѓР¶РЅРѕ СѓРґР°Р»РёС‚СЊ РІСЃРµ РґСѓР±Р»РёРєР°С‚С‹ РёР· СЃРєРЅС„ С‡С‚РѕР±С‹ РїСЂРµРґРѕСЃС‚Р°РІРёС‚СЊ РµС‘ РЅР° РІС‹С…РѕРґ. Рђ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РґР°Р»РµРµ РјРѕР¶РЅРѕ Рё СЃ РґСѓР±Р»РёРєР°С‚Р°РјРё
     vector<vector<string>> standartizedSDNF;
 
     for (int i = 0; i < sdnf.size(); i++) {
@@ -353,24 +353,24 @@ pair<vector<vector<string>>, string> newGeneratorSDNF(int ceilNumOfMembers, int 
         }
     }
 
-    //такое количество переменных и операторов нужно докинуть,отнимем то, что уже занимает сама СНКФ.
+    //С‚Р°РєРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РїРµСЂРµРјРµРЅРЅС‹С… Рё РѕРїРµСЂР°С‚РѕСЂРѕРІ РЅСѓР¶РЅРѕ РґРѕРєРёРЅСѓС‚СЊ,РѕС‚РЅРёРјРµРј С‚Рѕ, С‡С‚Рѕ СѓР¶Рµ Р·Р°РЅРёРјР°РµС‚ СЃР°РјР° РЎРќРљР¤.
     int needToAdd = approxSize - (2 * numOfVars - 1) * (2 * ceilNumOfMembers - 1) - negationsSet;
 
-    //Это можно в принципе менять. Это распределение ожидаемого увеличения длины на каждом уровне.
+    //Р­С‚Рѕ РјРѕР¶РЅРѕ РІ РїСЂРёРЅС†РёРїРµ РјРµРЅСЏС‚СЊ. Р­С‚Рѕ СЂР°СЃРїСЂРµРґРµР»РµРЅРёРµ РѕР¶РёРґР°РµРјРѕРіРѕ СѓРІРµР»РёС‡РµРЅРёСЏ РґР»РёРЅС‹ РЅР° РєР°Р¶РґРѕРј СѓСЂРѕРІРЅРµ.
     int onVarLevel = needToAdd / 4;
     int onMemberLevel = onVarLevel;
     int onFormulaLevel = needToAdd / 2;
 
-    //усложнение на уровне переменных. К переменным добавляем формулы, являющиеся тождественными нулями или единицами. (x=x*1 or x=x+0)
+    //СѓСЃР»РѕР¶РЅРµРЅРёРµ РЅР° СѓСЂРѕРІРЅРµ РїРµСЂРµРјРµРЅРЅС‹С…. Рљ РїРµСЂРµРјРµРЅРЅС‹Рј РґРѕР±Р°РІР»СЏРµРј С„РѕСЂРјСѓР»С‹, СЏРІР»СЏСЋС‰РёРµСЃСЏ С‚РѕР¶РґРµСЃС‚РІРµРЅРЅС‹РјРё РЅСѓР»СЏРјРё РёР»Рё РµРґРёРЅРёС†Р°РјРё. (x=x*1 or x=x+0)
 
-    int perMember = onVarLevel / ceilNumOfMembers;  // такое колчество должен набрать каждый член в среднем
+    int perMember = onVarLevel / ceilNumOfMembers;  // С‚Р°РєРѕРµ РєРѕР»С‡РµСЃС‚РІРѕ РґРѕР»Р¶РµРЅ РЅР°Р±СЂР°С‚СЊ РєР°Р¶РґС‹Р№ С‡Р»РµРЅ РІ СЃСЂРµРґРЅРµРј
 
     for (int i = 0; i < sdnf.size(); i++) {
 
         string ans;
-        int toAdd = perMember;   //оставшееся количество символов, которое нужно набрать
+        int toAdd = perMember;   //РѕСЃС‚Р°РІС€РµРµСЃСЏ РєРѕР»РёС‡РµСЃС‚РІРѕ СЃРёРјРІРѕР»РѕРІ, РєРѕС‚РѕСЂРѕРµ РЅСѓР¶РЅРѕ РЅР°Р±СЂР°С‚СЊ
 
-        while (toAdd > perMember / 10) {   //пока не набрали хотя бы 90% от нужного, продолжаем
+        while (toAdd > perMember / 10) {   //РїРѕРєР° РЅРµ РЅР°Р±СЂР°Р»Рё С…РѕС‚СЏ Р±С‹ 90% РѕС‚ РЅСѓР¶РЅРѕРіРѕ, РїСЂРѕРґРѕР»Р¶Р°РµРј
 
             for (int j = 0; j < sdnf[i].size(); j++) {
 
@@ -400,13 +400,13 @@ pair<vector<vector<string>>, string> newGeneratorSDNF(int ceilNumOfMembers, int 
     }
 
 
-    //теперь проведём усложнение на уровне члена СДНФ. Будем запутывать переменные.
+    //С‚РµРїРµСЂСЊ РїСЂРѕРІРµРґС‘Рј СѓСЃР»РѕР¶РЅРµРЅРёРµ РЅР° СѓСЂРѕРІРЅРµ С‡Р»РµРЅР° РЎР”РќР¤. Р‘СѓРґРµРј Р·Р°РїСѓС‚С‹РІР°С‚СЊ РїРµСЂРµРјРµРЅРЅС‹Рµ.
 
-    //генератор случайных чисел, нужен для перемешивания элементов между собой
+    //РіРµРЅРµСЂР°С‚РѕСЂ СЃР»СѓС‡Р°Р№РЅС‹С… С‡РёСЃРµР», РЅСѓР¶РµРЅ РґР»СЏ РїРµСЂРµРјРµС€РёРІР°РЅРёСЏ СЌР»РµРјРµРЅС‚РѕРІ РјРµР¶РґСѓ СЃРѕР±РѕР№
     random_device rd;
     default_random_engine rng(rd());
 
-    int onLevel2 = onMemberLevel / ceilNumOfMembers;    //столько должнен набрать каждый член СДНФ
+    int onLevel2 = onMemberLevel / ceilNumOfMembers;    //СЃС‚РѕР»СЊРєРѕ РґРѕР»Р¶РЅРµРЅ РЅР°Р±СЂР°С‚СЊ РєР°Р¶РґС‹Р№ С‡Р»РµРЅ РЎР”РќР¤
 
     for (int i = 0; i < sdnf.size(); i++) {
 
@@ -415,13 +415,13 @@ pair<vector<vector<string>>, string> newGeneratorSDNF(int ceilNumOfMembers, int 
 
         while (toAdd > onLevel2 / 10 && sdnf[i].size() != 1) {
 
-            shuffle(sdnf[i].begin(), sdnf[i].end(), rng);   //запутаем элементы между собой
+            shuffle(sdnf[i].begin(), sdnf[i].end(), rng);   //Р·Р°РїСѓС‚Р°РµРј СЌР»РµРјРµРЅС‚С‹ РјРµР¶РґСѓ СЃРѕР±РѕР№
 
             string newMember;
             int lastIndex = sdnf[i].size() - 1;
 
 
-            //тут используется равенство x*y = (x+y)*(!x+y)*(x+!y)
+            //С‚СѓС‚ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ СЂР°РІРµРЅСЃС‚РІРѕ x*y = (x+y)*(!x+y)*(x+!y)
             newMember = "((" + sdnf[i][0] + "+" + sdnf[i][lastIndex] + ")*(!(" + sdnf[i][0] + ")+" + sdnf[i][lastIndex] + ")*(" + sdnf[i][0] + "+!(" + sdnf[i][lastIndex] + ")))";
             //newMember = "(" + sknf[i][0] + "^" + sknf[i][lastIndex] + "^" + sknf[i][0] + "*" + sknf[i][lastIndex] + ")";
             toAdd -= countVarsAndOperators(sdnf[i][0]) + countVarsAndOperators(sdnf[i][lastIndex]) + 7;
@@ -431,7 +431,7 @@ pair<vector<vector<string>>, string> newGeneratorSDNF(int ceilNumOfMembers, int 
         }
     }
 
-    //теперь усложнённые члены соединим в строки
+    //С‚РµРїРµСЂСЊ СѓСЃР»РѕР¶РЅС‘РЅРЅС‹Рµ С‡Р»РµРЅС‹ СЃРѕРµРґРёРЅРёРј РІ СЃС‚СЂРѕРєРё
     vector <string> compMembSDNF;
     for (int i = 0; i < sdnf.size(); i++) {
         string buf = "(";
@@ -444,12 +444,12 @@ pair<vector<vector<string>>, string> newGeneratorSDNF(int ceilNumOfMembers, int 
     }
 
 
-    //теперь проведём усложнение на уровне формулы, запутывая члены СДНФ. Между членами стоит +
+    //С‚РµРїРµСЂСЊ РїСЂРѕРІРµРґС‘Рј СѓСЃР»РѕР¶РЅРµРЅРёРµ РЅР° СѓСЂРѕРІРЅРµ С„РѕСЂРјСѓР»С‹, Р·Р°РїСѓС‚С‹РІР°СЏ С‡Р»РµРЅС‹ РЎР”РќР¤. РњРµР¶РґСѓ С‡Р»РµРЅР°РјРё СЃС‚РѕРёС‚ +
 
-    int toAdd = onFormulaLevel;  //осталось добрать
+    int toAdd = onFormulaLevel;  //РѕСЃС‚Р°Р»РѕСЃСЊ РґРѕР±СЂР°С‚СЊ
 
 
-     //Применяется равенство x+y=x^y^x*y 
+     //РџСЂРёРјРµРЅСЏРµС‚СЃСЏ СЂР°РІРµРЅСЃС‚РІРѕ x+y=x^y^x*y 
     while (toAdd > onFormulaLevel / 10 && compMembSDNF.size() != 1) {
         shuffle(compMembSDNF.begin(), compMembSDNF.end(), rng);
         string buf;
@@ -462,7 +462,7 @@ pair<vector<vector<string>>, string> newGeneratorSDNF(int ceilNumOfMembers, int 
         compMembSDNF.push_back(buf);
     }
 
-    //наконец, соединим всё в одну строку
+    //РЅР°РєРѕРЅРµС†, СЃРѕРµРґРёРЅРёРј РІСЃС‘ РІ РѕРґРЅСѓ СЃС‚СЂРѕРєСѓ
     string answer;
 
     for (int i = 0; i < compMembSDNF.size(); i++) {
