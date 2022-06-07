@@ -1,6 +1,6 @@
 #include "generators.h"
 extern int numOfVars;
-//считает количество вхождений в строку переменных и операторов 
+//считает количество вхождений в строку переменных и операторов
 int countVarsAndOperators(string str) {
     int answer = 0;
     for (int i = 0; i < str.size(); i++) {
