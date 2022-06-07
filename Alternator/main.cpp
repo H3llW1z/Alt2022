@@ -5,6 +5,7 @@
 #include "generators.h"
 #include "OPZalgorithm.h"
 #include "helperFunctions.h"
+
 list<sknfMember>::iterator it1;        //итератор для перемещения по списку комбинаций
 stack <list<sknfMember>> globalStack;   //глобальный стек для сохранения данных, пришедших из родителя
 int numOfVars = -1;   //хранит количество переменных в формуле, нужно для ограничения рабочей части битовой шкалы калькулятора ОПЗ
