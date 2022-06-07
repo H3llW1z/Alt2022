@@ -20,7 +20,7 @@ bool checkBraces(string str) {
 }
 
 //Удаляет внешние парные скобки, пример ((a+b)) -> a+b
-void removeOuterBraces(string& str) {
+void removeOuterBraces(string& str) { 
     if (str[0] != '(' || str[str.size() - 1] != ')')
         return;
     bool isGood = true;
