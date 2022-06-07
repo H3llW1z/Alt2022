@@ -15,7 +15,7 @@ list<list<short>> listOfBitsetsToListOfShorts(list<sknfMember> lst) {
                     bufVar = j + 1;
                 }
                 else {
-                    bufVar = -(j + 1);  
+                    bufVar = -(j + 1); 
                 }
                 buf.push_back(bufVar);
                 
