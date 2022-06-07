@@ -10,7 +10,7 @@ int countVarsAndOperators(string str) {
     }
     return answer;
 }
-
+ 
 string complicateConstant(int numOfVars, int numOfVarsTotal, bool constFlag) {
     string answer;
 
